@@ -31,6 +31,16 @@ private:
 
 	VkQueue graphicsQueue;
 
+	const std::vector<const char*> validationLayers = {
+		"VK_LAYER_KHRONOS_validation"
+	};
+
+#ifdef NDEBUG
+	const bool enableValidationLayers = false;
+#else
+	const bool enableValidationLayers = true;
+#endif
+
 	// Vulkan Functions
 	// - Create Functions
 	void createInstance();
@@ -43,6 +53,7 @@ private:
 	// -- Checker Functions
 	bool checkInstanceExtensionSupport(std::vector<const char*>* checkExtensions);
 	bool checkDeviceSuitable(VkPhysicalDevice device);
+	bool checkValidationLayerSupport();
 
 	// -- Getter Functions
 	QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device);
