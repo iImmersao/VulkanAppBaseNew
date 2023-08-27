@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fstream>
+
 // Indices (locations) of Queue Families (if they exist at all)
 struct QueueFamilyIndices {
 	int graphicsFamily = -1;  // Location of Graphics Queue Family
@@ -35,3 +37,25 @@ struct SwapchainImage {
 	VkImage image;
 	VkImageView imageView;
 };
+
+static std::vector<char> readFile(const std::string& filename) {
+	std::ifstream file(filename, std::ios::binary | std::ios::ate); // "ate" - Puts read pointer to end, so that we can find the size of the file's data
+
+	// Check if files stream successfully opened
+	if (!file.is_open()) {
+		throw std::runtime_error("Failed to open a file!");
+	}
+
+	size_t fileSize = (size_t)file.tellg();
+	std::vector<char> fileBuffer(fileSize);
+
+	// Reset pointer to start of file
+	file.seekg(0);
+
+	// Read data into buffer
+	file.read(fileBuffer.data(), fileSize);
+
+	file.close();
+
+	return fileBuffer;
+}
