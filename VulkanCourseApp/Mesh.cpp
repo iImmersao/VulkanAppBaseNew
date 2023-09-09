@@ -1,39 +1,32 @@
 #include "Mesh.h"
 
-Mesh::Mesh()
-{
+Mesh::Mesh() {
 }
 
-Mesh::Mesh(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice, std::vector<Vertex>* vertices)
-{
+Mesh::Mesh(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice, std::vector<Vertex>* vertices) {
 	vertexCount = vertices->size();
 	physicalDevice = newPhysicalDevice;
 	device = newDevice;
 	createVertexBuffer(vertices);
 }
 
-int Mesh::getVertexCount()
-{
+int Mesh::getVertexCount() {
 	return vertexCount;
 }
 
-VkBuffer Mesh::getVertexBuffer()
-{
+VkBuffer Mesh::getVertexBuffer() {
 	return vertexBuffer;
 }
 
-void Mesh::destroyVertexBuffer()
-{
+void Mesh::destroyVertexBuffer() {
 	vkDestroyBuffer(device, vertexBuffer, nullptr);
 	vkFreeMemory(device, vertexBufferMemory, nullptr);
 }
 
-Mesh::~Mesh()
-{
+Mesh::~Mesh() {
 }
 
-VkBuffer Mesh::createVertexBuffer(std::vector<Vertex>* vertices)
-{
+VkBuffer Mesh::createVertexBuffer(std::vector<Vertex>* vertices) {
 	// CREATE VERTEX BUFFER
 	// Information to create a buffer (doesn't include assigning memory)
 	VkBufferCreateInfo bufferInfo = {};
@@ -43,8 +36,7 @@ VkBuffer Mesh::createVertexBuffer(std::vector<Vertex>* vertices)
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;					// Similar to Swap Chain images, can share vertex buffers
 
 	VkResult result = vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer);
-	if (result != VK_SUCCESS)
-	{
+	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create a Vertex Buffer!");
 	}
 
@@ -58,26 +50,23 @@ VkBuffer Mesh::createVertexBuffer(std::vector<Vertex>* vertices)
 	memoryAllocInfo.allocationSize = memRequirements.size;
 	memoryAllocInfo.memoryTypeIndex = findMemoryTypeIndex(memRequirements.memoryTypeBits,		// Index of memory type on Physical Device that has required bit flags
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);			// VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT	: CPU can interact with memory
-																								// VK_MEMORY_PROPERTY_HOST_COHERENT_BIT	: Allows placement of data straight into buffer mapping (otherwise would have to specify manually)
-	// Allocate memory to VkDeviceMemory
+	// VK_MEMORY_PROPERTY_HOST_COHERENT_BIT	: Allows placement of data straight into buffer mapping (otherwise would have to specify manually)
+// Allocate memory to VkDeviceMemory
 	result = vkAllocateMemory(device, &memoryAllocInfo, nullptr, &vertexBufferMemory);
-	if (result != VK_SUCCESS)
-	{
+	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate Vertex Buffer Memory!");
 	}
 
 	// Allocate memory to give vertex buffer
 	result = vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
-	if (result != VK_SUCCESS)
-	{
+	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to bind Vertex Buffer Memory!");
 	}
 
 	// MAP MEMORY TO VERTEX BUFFER
 	void* data;																			// 1. Create pointer to a point in normal memory
 	result = vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);		// 2. "Map" the vertex buffer memory to that point
-	if (result != VK_SUCCESS)
-	{
+	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to map Vertex Buffer Memory!");
 	}
 	memcpy(data, vertices->data(), (size_t)bufferInfo.size);							// 3. Copy memory from vertices vector to the point
@@ -86,8 +75,7 @@ VkBuffer Mesh::createVertexBuffer(std::vector<Vertex>* vertices)
 	return vertexBuffer;
 }
 
-uint32_t Mesh::findMemoryTypeIndex(uint32_t allowedTypes, VkMemoryPropertyFlags properties)
-{
+uint32_t Mesh::findMemoryTypeIndex(uint32_t allowedTypes, VkMemoryPropertyFlags properties) {
 	// Get properties of physical device memory
 	VkPhysicalDeviceMemoryProperties memoryProperties;
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);

@@ -15,7 +15,7 @@
 
 #include "VulkanRenderer.h"
 
-GLFWwindow * window;
+GLFWwindow* window;
 VulkanRenderer vulkanRenderer;
 
 void initWindow(std::string wName = "Test Window", const int width = 800, const int height = 600) {

@@ -25,25 +25,6 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 			{ {-0.4f, 0.4f, 0.0f}, {0.0f, 0.0f, 1.0f} },
 			{ {-0.4f, -0.4f, 0.0f}, {1.0f, 1.0f, 0.0f} },
 			{ {0.4f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f} }
-			/*
-			{ {0.4f, -0.4f, 0.0f} },
-			{ {0.4f, 0.4f, 0.0f} },
-			{ {-0.4f, 0.4f, 0.0f} },
-
-			{ {-0.4f, 0.4f, 0.0f} },
-			{ {-0.4f, -0.4f, 0.0f} },
-			{ {0.4f, -0.4f, 0.0f} }
-			*/
-			/*
-			{{0.4, -0.4, 0.0}},
-			{{0.4, 0.4, 0.0}},
-			{{-0.4, 0.4, 0.0}}
-			*/
-			/*
-			{{0.8, -0.6, 0.0}},
-			{{0.8, 0.6, 0.0}},
-			{{-0.6, -0.8, 0.0}}
-			*/
 		};
 		firstMesh = Mesh(mainDevice.physicalDevice, mainDevice.logicalDevice, &meshVertices);
 
@@ -64,8 +45,7 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 	return 0;
 }
 
-void VulkanRenderer::draw()
-{
+void VulkanRenderer::draw() {
 	// Wait for given fence to signal (open) from last draw before continuing
 	vkWaitForFences(mainDevice.logicalDevice, 1, &drawFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 	// Manually reset (close) fence
@@ -262,71 +242,6 @@ void VulkanRenderer::createLogicalDevice() {
 	vkGetDeviceQueue(mainDevice.logicalDevice, indices.presentationFamily, 0, &presentationQueue);
 }
 
-void VulkanRenderer::createSurface() {
-	// Create Surface (creating a surface create info struct, runs the create surface function, returns result)
-	// GLFW does all this itself, but if not using GLFW, all this needs to be done specifically for the platform being use, e.g., for Win32, Linux, etc.
-	VkResult result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create a surface!");
-	}
-}
-
-// Best format is subjective, but ours will be:
-// Format		:	VK_FORMAT_R8G8B8A8_UNORM (VK_FORMAT_B8G8R8A8_UNORM as backup)
-// colorSpace	:	VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-VkSurfaceFormatKHR VulkanRenderer::chooseBestSurfaceFormat(const std::vector < VkSurfaceFormatKHR>& formats) {
-	if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED) {
-		// This actually means that ALL formats are supported! So can just return what we want.
-		return { VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
-	}
-
-	// If restricted, search for optimal format
-	for (const auto& format : formats) {
-		if ((format.format == VK_FORMAT_R8G8B8A8_UNORM || format.format == VK_FORMAT_B8G8R8A8_UNORM)
-			&& format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-			return format;
-		}
-	}
-
-	// If we can't find what we want, just return first format and hope it works!
-	return formats[0];
-}
-
-VkPresentModeKHR VulkanRenderer::chooseBestPresentationMode(const std::vector<VkPresentModeKHR> presentationModes) {
-	// Look for desired presentation mode
-	for (const auto& presentationMode : presentationModes) {
-		if (presentationMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-			return presentationMode;
-		}
-	}
-
-	// According to Vulkan spec, this one has to be available, so can be used as default.
-	return VK_PRESENT_MODE_FIFO_KHR;
-}
-
-VkExtent2D VulkanRenderer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities) {
-	// The current extent can be variable, but if it is not set to INT_MAX, it should be set to the right value for our surface, so just use it.
-	if (surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-		return surfaceCapabilities.currentExtent;
-	}
-	else {
-		// If value can vary (i.e., extent is INT_MAX), need to set it manually
-		// So, get window size
-		int width, height;
-		glfwGetFramebufferSize(window, &width, &height);
-
-		// Create new extent using window size
-		VkExtent2D newExtent = {};
-		newExtent.width = static_cast<uint32_t>(width);
-		newExtent.height = static_cast<uint32_t>(height);
-
-		// Surface also defines max and min, so make sure withing boundaries by clamping value
-		newExtent.width = std::max(surfaceCapabilities.minImageExtent.width, std::min(surfaceCapabilities.maxImageExtent.width, newExtent.width));
-		newExtent.height = std::max(surfaceCapabilities.minImageExtent.height, std::min(surfaceCapabilities.maxImageExtent.height, newExtent.height));
-		return newExtent;
-	}
-}
-
 void VulkanRenderer::createSwapChain() {
 	// Get Swap Chain details so we can pick best settings
 	SwapChainDetails swapChainDetails = getSwapChainDetails(mainDevice.physicalDevice);
@@ -412,8 +327,7 @@ void VulkanRenderer::createSwapChain() {
 	}
 }
 
-void VulkanRenderer::createRenderPass()
-{
+void VulkanRenderer::createRenderPass() {
 	// Colour attachment of render pass
 	VkAttachmentDescription colourAttachment = {};
 	colourAttachment.format = swapChainImageFormat;						// Format to use for attachment
@@ -481,8 +395,7 @@ void VulkanRenderer::createRenderPass()
 	}
 }
 
-void VulkanRenderer::createGraphicsPipeline()
-{
+void VulkanRenderer::createGraphicsPipeline() {
 	// Read in SPIR-V code of shaders
 	auto vertexShaderCode = readFile("Shaders/vert.spv");
 	auto fragmentShaderCode = readFile("Shaders/frag.spv");
@@ -521,6 +434,7 @@ void VulkanRenderer::createGraphicsPipeline()
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;			// How to move between data after each vertex.
 																		// VK_VERTEX_INPUT_RATE_INDEX		: Move on to the next vertex
 																		// VK_VERTEX_INPUT_RATE_INSTANCE	: Move to a vertex for the next instance
+
 	// How the data for an attribute is defined within a vertex
 	std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions;
 
@@ -531,12 +445,12 @@ void VulkanRenderer::createGraphicsPipeline()
 	attributeDescriptions[0].offset = offsetof(Vertex, pos);			// Where this attribute is defined in the data for a single vertex.
 																		// Finds offset into struct where field is located. This may be different, if other fields are added
 
-	// Colour attribute
-	/*
-	*/
+// Colour attribute
+/*
+*/
 	attributeDescriptions[1].binding = 0;
 	attributeDescriptions[1].location = 1;
-	attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 	attributeDescriptions[1].offset = offsetof(Vertex, col);
 
 	// -- Vertex Input --
@@ -615,7 +529,7 @@ void VulkanRenderer::createGraphicsPipeline()
 	colourState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT		// Colours to apply blending to
 		| VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	colourState.blendEnable = VK_TRUE;														// Enable blending
-	// Blending uses the following equation: (srcColorBlendFactor * new colour) colorBlendOp (dstColorBlendFactor * old colour)
+																							// Blending uses the following equation: (srcColorBlendFactor * new colour) colorBlendOp (dstColorBlendFactor * old colour)
 	colourState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 	colourState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 	colourState.colorBlendOp = VK_BLEND_OP_ADD;
@@ -684,8 +598,7 @@ void VulkanRenderer::createGraphicsPipeline()
 	vkDestroyShaderModule(mainDevice.logicalDevice, vertexShaderModule, nullptr);
 }
 
-void VulkanRenderer::createFramebuffers()
-{
+void VulkanRenderer::createFramebuffers() {
 	// Resize framebuffer count to equal swap chain image count
 	swapChainFramebuffers.resize(swapChainImages.size());
 
@@ -711,8 +624,7 @@ void VulkanRenderer::createFramebuffers()
 	}
 }
 
-void VulkanRenderer::createCommandPool()
-{
+void VulkanRenderer::createCommandPool() {
 	// Get indices of queue families from device
 	QueueFamilyIndices queueFamilyIndices = getQueueFamilies(mainDevice.physicalDevice);
 
@@ -727,8 +639,7 @@ void VulkanRenderer::createCommandPool()
 	}
 }
 
-void VulkanRenderer::createCommandBuffers()
-{
+void VulkanRenderer::createCommandBuffers() {
 	// Resize command buffer count to have one for each framebuffer
 	commandBuffers.resize(swapChainFramebuffers.size());
 
@@ -746,8 +657,7 @@ void VulkanRenderer::createCommandBuffers()
 	}
 }
 
-void VulkanRenderer::createSynchronisation()
-{
+void VulkanRenderer::createSynchronisation() {
 	imageAvailable.resize(MAX_FRAME_DRAWS);
 	renderFinished.resize(MAX_FRAME_DRAWS);
 	drawFences.resize(MAX_FRAME_DRAWS);
@@ -777,8 +687,7 @@ void VulkanRenderer::createSynchronisation()
 	}
 }
 
-void VulkanRenderer::recordCommands()
-{
+void VulkanRenderer::recordCommands() {
 	// Information about how to begin each command buffer
 	VkCommandBufferBeginInfo bufferBeginInfo = {};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -912,30 +821,6 @@ bool VulkanRenderer::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 	return true;
 }
 
-bool VulkanRenderer::checkDeviceSuitable(VkPhysicalDevice device) {
-	/* TODO:
-	// Information about the device itself (ID, name, type, vendor, etc)
-	VkPhysicalDeviceProperties deviceProperties;
-	vkGetPhysicalDeviceProperties(device, &deviceProperties);
-
-	// Information about what the device can do (geo shader, tess shader, wide lines, etc)
-	VkPhysicalDeviceFeatures deviceFeatures;
-	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-	*/
-
-	QueueFamilyIndices indices = getQueueFamilies(device);
-
-	bool extensionsSupported = checkDeviceExtensionSupport(device);
-
-	bool swapChainValid = false;
-	if (extensionsSupported) {
-		SwapChainDetails swapChainDetails = getSwapChainDetails(device);
-		swapChainValid = !swapChainDetails.presentationModes.empty() && !swapChainDetails.formats.empty();
-	}
-
-	return indices.isValid() && extensionsSupported && swapChainValid;
-}
-
 bool VulkanRenderer::checkValidationLayerSupport() {
 	uint32_t layerCount;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -959,6 +844,30 @@ bool VulkanRenderer::checkValidationLayerSupport() {
 	}
 
 	return true;
+}
+
+bool VulkanRenderer::checkDeviceSuitable(VkPhysicalDevice device) {
+	/* TODO:
+	// Information about the device itself (ID, name, type, vendor, etc)
+	VkPhysicalDeviceProperties deviceProperties;
+	vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+	// Information about what the device can do (geo shader, tess shader, wide lines, etc)
+	VkPhysicalDeviceFeatures deviceFeatures;
+	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+	*/
+
+	QueueFamilyIndices indices = getQueueFamilies(device);
+
+	bool extensionsSupported = checkDeviceExtensionSupport(device);
+
+	bool swapChainValid = false;
+	if (extensionsSupported) {
+		SwapChainDetails swapChainDetails = getSwapChainDetails(device);
+		swapChainValid = !swapChainDetails.presentationModes.empty() && !swapChainDetails.formats.empty();
+	}
+
+	return indices.isValid() && extensionsSupported && swapChainValid;
 }
 
 QueueFamilyIndices VulkanRenderer::getQueueFamilies(VkPhysicalDevice device) {
@@ -1029,6 +938,71 @@ SwapChainDetails VulkanRenderer::getSwapChainDetails(VkPhysicalDevice device) {
 	return swapChainDetails;
 }
 
+void VulkanRenderer::createSurface() {
+	// Create Surface (creating a surface create info struct, runs the create surface function, returns result)
+	// GLFW does all this itself, but if not using GLFW, all this needs to be done specifically for the platform being use, e.g., for Win32, Linux, etc.
+	VkResult result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
+	if (result != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create a surface!");
+	}
+}
+
+// Best format is subjective, but ours will be:
+// Format		:	VK_FORMAT_R8G8B8A8_UNORM (VK_FORMAT_B8G8R8A8_UNORM as backup)
+// colorSpace	:	VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+VkSurfaceFormatKHR VulkanRenderer::chooseBestSurfaceFormat(const std::vector < VkSurfaceFormatKHR>& formats) {
+	if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED) {
+		// This actually means that ALL formats are supported! So can just return what we want.
+		return { VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
+	}
+
+	// If restricted, search for optimal format
+	for (const auto& format : formats) {
+		if ((format.format == VK_FORMAT_R8G8B8A8_UNORM || format.format == VK_FORMAT_B8G8R8A8_UNORM)
+			&& format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+			return format;
+		}
+	}
+
+	// If we can't find what we want, just return first format and hope it works!
+	return formats[0];
+}
+
+VkPresentModeKHR VulkanRenderer::chooseBestPresentationMode(const std::vector<VkPresentModeKHR> presentationModes) {
+	// Look for desired presentation mode
+	for (const auto& presentationMode : presentationModes) {
+		if (presentationMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+			return presentationMode;
+		}
+	}
+
+	// According to Vulkan spec, this one has to be available, so can be used as default.
+	return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D VulkanRenderer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities) {
+	// The current extent can be variable, but if it is not set to INT_MAX, it should be set to the right value for our surface, so just use it.
+	if (surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+		return surfaceCapabilities.currentExtent;
+	}
+	else {
+		// If value can vary (i.e., extent is INT_MAX), need to set it manually
+		// So, get window size
+		int width, height;
+		glfwGetFramebufferSize(window, &width, &height);
+
+		// Create new extent using window size
+		VkExtent2D newExtent = {};
+		newExtent.width = static_cast<uint32_t>(width);
+		newExtent.height = static_cast<uint32_t>(height);
+
+		// Surface also defines max and min, so make sure withing boundaries by clamping value
+		newExtent.width = std::max(surfaceCapabilities.minImageExtent.width, std::min(surfaceCapabilities.maxImageExtent.width, newExtent.width));
+		newExtent.height = std::max(surfaceCapabilities.minImageExtent.height, std::min(surfaceCapabilities.maxImageExtent.height, newExtent.height));
+		return newExtent;
+	}
+}
+
 VkImageView VulkanRenderer::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
 	VkImageViewCreateInfo viewCreateInfo = {};
 	viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1057,12 +1031,11 @@ VkImageView VulkanRenderer::createImageView(VkImage image, VkFormat format, VkIm
 	return imageView;
 }
 
-VkShaderModule VulkanRenderer::createShaderModule(const std::vector<char>& code)
-{
+VkShaderModule VulkanRenderer::createShaderModule(const std::vector<char>& code) {
 	VkShaderModuleCreateInfo shaderModuleCreateInfo = {};
 	shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	shaderModuleCreateInfo.codeSize = code.size();										// Size of code
-	shaderModuleCreateInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());		// Pointer to code (of type pointer to uint32_t)
+	shaderModuleCreateInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());		// Pointer to code (of type pointer to uint32_t)
 
 	VkShaderModule shaderModule;
 	VkResult result = vkCreateShaderModule(mainDevice.logicalDevice, &shaderModuleCreateInfo, nullptr, &shaderModule);

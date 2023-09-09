@@ -13,8 +13,7 @@
 
 #include "Utilities.h"
 
-class VulkanRenderer
-{
+class VulkanRenderer {
 public:
 	VulkanRenderer();
 
@@ -27,7 +26,7 @@ public:
 	~VulkanRenderer();
 
 private:
-	GLFWwindow * window;
+	GLFWwindow* window;
 
 	int currentFrame = 0;
 
