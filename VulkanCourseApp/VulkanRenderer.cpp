@@ -23,18 +23,22 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		createCommandBuffers();
 
 		// Create a mesh
+		// Vertex Data
 		std::vector<Vertex> meshVertices = {
-			{ {0.4f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f} },
-			{ {0.4f, 0.4f, 0.0f}, {0.0f, 1.0f, 0.0f} },
-			{ {-0.4f, 0.4f, 0.0f}, {0.0f, 0.0f, 1.0f} },
-
-			{ {-0.4f, 0.4f, 0.0f}, {0.0f, 0.0f, 1.0f} },
-			{ {-0.4f, -0.4f, 0.0f}, {1.0f, 1.0f, 0.0f} },
-			{ {0.4f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f} }
+			{ {0.4f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f} },	// 0
+			{ {0.4f, 0.4f, 0.0f}, {0.0f, 1.0f, 0.0f} },		// 1
+			{ {-0.4f, 0.4f, 0.0f}, {0.0f, 0.0f, 1.0f} },	// 2
+			{ {-0.4f, -0.4f, 0.0f}, {1.0f, 1.0f, 0.0f} }	// 3
 		};
+		// Index Data
+		std::vector<uint32_t> meshIndices = {
+			0, 1, 2,
+			2, 3, 0
+		};
+
 		firstMesh = Mesh(mainDevice.physicalDevice, mainDevice.logicalDevice,
 			graphicsQueue, graphicsCommandPool,
-			&meshVertices);
+			&meshVertices, &meshIndices);
 
 		recordCommands();
 		createSynchronisation();
@@ -105,7 +109,7 @@ void VulkanRenderer::cleanup() {
 	// Wait until the device is idle, which will mean that all the queues are clear, so resources can be freed up.
 	vkDeviceWaitIdle(mainDevice.logicalDevice);
 
-	firstMesh.destroyVertexBuffer();
+	firstMesh.destroyBuffers();
 	for (size_t i = 0; i < MAX_FRAME_DRAWS; i++) {
 		vkDestroySemaphore(mainDevice.logicalDevice, renderFinished[i], nullptr);
 		vkDestroySemaphore(mainDevice.logicalDevice, imageAvailable[i], nullptr);
@@ -728,8 +732,12 @@ void VulkanRenderer::recordCommands() {
 		VkDeviceSize offsets[] = { 0 };												// Offsets into buffers being bound
 		vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);	// Command to bind vertex buffers before drawing with them
 
+		// Bind mesh index buffer, with 0 offset and using the uint32_t type
+		vkCmdBindIndexBuffer(commandBuffers[i], firstMesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
 		// Execute pipeline
-		vkCmdDraw(commandBuffers[i], static_cast<uint32_t>(firstMesh.getVertexCount()), 1, 0, 0);
+		//vkCmdDraw(commandBuffers[i], static_cast<uint32_t>(firstMesh.getVertexCount()), 1, 0, 0);
+		vkCmdDrawIndexed(commandBuffers[i], firstMesh.getIndexCount(), 1, 0, 0, 0);
 
 		// End Render Pass
 		vkCmdEndRenderPass(commandBuffers[i]);
