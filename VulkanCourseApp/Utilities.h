@@ -2,7 +2,16 @@
 
 #include <fstream>
 
+#include <glm/glm.hpp>
+
 const int MAX_FRAME_DRAWS = 2;
+
+// Vertex data representation
+struct Vertex {
+	glm::vec3 pos; // Vertex Position (x, y, z)
+	glm::vec3 col; // Vertex Colour (r, g, b)
+	glm::vec3 padding;
+};
 
 // Indices (locations) of Queue Families (if they exist at all)
 struct QueueFamilyIndices {
