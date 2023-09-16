@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 
 const int MAX_FRAME_DRAWS = 2;
-const int MAX_OBJECTS = 2; // Will need to increase this for more complex scenes!
+const int MAX_OBJECTS = 20; // Will need to increase this for more complex scenes!
 
 // Vertex data representation
 struct Vertex {
