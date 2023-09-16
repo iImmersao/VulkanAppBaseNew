@@ -14,6 +14,7 @@ const int MAX_OBJECTS = 2; // Will need to increase this for more complex scenes
 struct Vertex {
 	glm::vec3 pos; // Vertex Position (x, y, z)
 	glm::vec3 col; // Vertex Colour (r, g, b)
+	glm::vec2 tex; // Texture Coords (u, v)
 };
 
 // Indices (locations) of Queue Families (if they exist at all)
