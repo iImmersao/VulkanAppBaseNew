@@ -139,15 +139,44 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CommandBufferManager.cpp" />
+    <ClCompile Include="ConfigManager.cpp" />
+    <ClCompile Include="DescriptorPoolManager.cpp" />
+    <ClCompile Include="DeviceManager.cpp" />
+    <ClCompile Include="LightingManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="MeshModel.cpp" />
+    <ClCompile Include="ModelManager.cpp" />
+    <ClCompile Include="PipelineManager.cpp" />
+    <ClCompile Include="PushConstantManager.cpp" />
+    <ClCompile Include="QueueFamilyManager.cpp" />
+    <ClCompile Include="ShaderManager.cpp" />
+    <ClCompile Include="SynchronisationManager.cpp" />
+    <ClCompile Include="TextureManager.cpp" />
+    <ClCompile Include="UniformBufferManager.cpp" />
+    <ClCompile Include="ValidationManager.cpp" />
     <ClCompile Include="VulkanRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CommandBufferManager.h" />
+    <ClInclude Include="ConfigManager.h" />
+    <ClInclude Include="DescriptorPoolManager.h" />
+    <ClInclude Include="DeviceManager.h" />
+    <ClInclude Include="LightingManager.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshModel.h" />
+    <ClInclude Include="ModelManager.h" />
+    <ClInclude Include="PipelineManager.h" />
+    <ClInclude Include="PushConstantManager.h" />
+    <ClInclude Include="QueueFamilyManager.h" />
+    <ClInclude Include="ShaderManager.h" />
+    <ClInclude Include="stb_image.h" />
+    <ClInclude Include="SynchronisationManager.h" />
+    <ClInclude Include="TextureManager.h" />
+    <ClInclude Include="UniformBufferManager.h" />
     <ClInclude Include="Utilities.h" />
+    <ClInclude Include="ValidationManager.h" />
     <ClInclude Include="VulkanRenderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
