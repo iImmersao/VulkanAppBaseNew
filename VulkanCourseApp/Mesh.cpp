@@ -4,9 +4,9 @@ Mesh::Mesh() {
 }
 
 Mesh::Mesh(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice,
-		VkQueue transferQueue, VkCommandPool transferCommandPool,
-		std::vector<Vertex>* vertices, std::vector<uint32_t>* indices,
-		int newTexId) {
+	VkQueue transferQueue, VkCommandPool transferCommandPool,
+	std::vector<Vertex>* vertices, std::vector<uint32_t>* indices,
+	int newTexId) {
 	vertexCount = vertices->size();
 	indexCount = indices->size();
 	physicalDevice = newPhysicalDevice;

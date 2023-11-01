@@ -91,7 +91,7 @@ static uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t al
 }
 
 static void createBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsage,
-	VkMemoryPropertyFlags bufferProperties, VkBuffer * buffer, VkDeviceMemory * bufferMemory) {
+	VkMemoryPropertyFlags bufferProperties, VkBuffer* buffer, VkDeviceMemory* bufferMemory) {
 	// CREATE VERTEX BUFFER
 	// Information to create a buffer (doesn't include assigning memory)
 	VkBufferCreateInfo bufferInfo = {};
@@ -115,8 +115,8 @@ static void createBuffer(VkPhysicalDevice physicalDevice, VkDevice device, VkDev
 	memoryAllocInfo.allocationSize = memRequirements.size;
 	memoryAllocInfo.memoryTypeIndex = findMemoryTypeIndex(physicalDevice, memRequirements.memoryTypeBits,	// Index of memory type on Physical Device that has required bit flags
 		bufferProperties);																					// VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT	: CPU can interact with memory
-																											// VK_MEMORY_PROPERTY_HOST_COHERENT_BIT	: Allows placement of data straight into buffer mapping (otherwise would have to specify manually)
-	// Allocate memory to VkDeviceMemory
+	// VK_MEMORY_PROPERTY_HOST_COHERENT_BIT	: Allows placement of data straight into buffer mapping (otherwise would have to specify manually)
+// Allocate memory to VkDeviceMemory
 	result = vkAllocateMemory(device, &memoryAllocInfo, nullptr, bufferMemory);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate Vertex Buffer Memory!");

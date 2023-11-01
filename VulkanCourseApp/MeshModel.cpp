@@ -64,7 +64,7 @@ std::vector<std::string> MeshModel::LoadMaterials(const aiScene* scene) {
 }
 
 std::vector<Mesh> MeshModel::LoadNode(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice, VkQueue transferQueue, VkCommandPool transferCommandPool, aiNode* node,
-		const aiScene* scene, std::vector<int> matToTex) {
+	const aiScene* scene, std::vector<int> matToTex) {
 	std::vector<Mesh> meshList;
 
 	// Go through each mesh at this node and create it, then add it to our meshList
@@ -85,7 +85,7 @@ std::vector<Mesh> MeshModel::LoadNode(VkPhysicalDevice newPhysicalDevice, VkDevi
 }
 
 Mesh MeshModel::LoadMesh(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice, VkQueue transferQueue, VkCommandPool transferCommandPool, aiMesh* mesh,
-		const aiScene* scene, std::vector<int> matToTex) {
+	const aiScene* scene, std::vector<int> matToTex) {
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
@@ -96,7 +96,7 @@ Mesh MeshModel::LoadMesh(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice,
 	for (size_t i = 0; i < mesh->mNumVertices; i++) {
 		// Set position
 		vertices[i].pos = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-		
+
 		// Set tex coords (if they exist)
 		if (mesh->mTextureCoords[0]) {
 			vertices[i].tex = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };

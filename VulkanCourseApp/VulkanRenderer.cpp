@@ -596,14 +596,14 @@ void VulkanRenderer::createDescriptorSetLayout() {
 	modelLayoutBinding.pImmutableSamplers = nullptr;								// For Texture: Can make sampler unchangeable by specifying in layout
 	*/
 
-	std::vector<VkDescriptorSetLayoutBinding> layoutBindings = { vpLayoutBinding/*, modelLayoutBinding*/};
+	std::vector<VkDescriptorSetLayoutBinding> layoutBindings = { vpLayoutBinding/*, modelLayoutBinding*/ };
 
 	// Create Descriptor Set Layout with given bindings
 	VkDescriptorSetLayoutCreateInfo layoutCreateInfo = {};
 	layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutCreateInfo.bindingCount = layoutBindings.size();							// Number of binding infos
 	layoutCreateInfo.pBindings = layoutBindings.data();								// Array of binding infos
-	
+
 	// Create Descriptor Set Layout
 	VkResult result = vkCreateDescriptorSetLayout(mainDevice.logicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout);
 	if (result != VK_SUCCESS) {
@@ -706,10 +706,10 @@ void VulkanRenderer::createGraphicsPipeline() {
 	bindingDescription.binding = 0;										// Can bind multiple streams of data, this defines which one
 	bindingDescription.stride = sizeof(Vertex);							// Size of a single vertex object
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;			// How to move between data after each vertex.
-																		// VK_VERTEX_INPUT_RATE_INDEX		: Move on to the next vertex
-																		// VK_VERTEX_INPUT_RATE_INSTANCE	: Move to a vertex for the next instance
+	// VK_VERTEX_INPUT_RATE_INDEX		: Move on to the next vertex
+	// VK_VERTEX_INPUT_RATE_INSTANCE	: Move to a vertex for the next instance
 
-	// How the data for an attribute is defined within a vertex
+// How the data for an attribute is defined within a vertex
 	std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions;
 
 	// Position attribute
@@ -717,9 +717,9 @@ void VulkanRenderer::createGraphicsPipeline() {
 	attributeDescriptions[0].location = 0;								// Location in shader where data will be read from
 	attributeDescriptions[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;	// Format the data will take (RGBA values) - aslo helps define size of data
 	attributeDescriptions[0].offset = offsetof(Vertex, pos);			// Where this attribute is defined in the data for a single vertex.
-																		// Finds offset into struct where field is located. This may be different, if other fields are added
+	// Finds offset into struct where field is located. This may be different, if other fields are added
 
-	// Colour attribute
+// Colour attribute
 	attributeDescriptions[1].binding = 0;
 	attributeDescriptions[1].location = 1;
 	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -808,7 +808,7 @@ void VulkanRenderer::createGraphicsPipeline() {
 	colourState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT		// Colours to apply blending to
 		| VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	colourState.blendEnable = VK_TRUE;														// Enable blending
-																							// Blending uses the following equation: (srcColorBlendFactor * new colour) colorBlendOp (dstColorBlendFactor * old colour)
+	// Blending uses the following equation: (srcColorBlendFactor * new colour) colorBlendOp (dstColorBlendFactor * old colour)
 	colourState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 	colourState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 	colourState.colorBlendOp = VK_BLEND_OP_ADD;
@@ -1034,7 +1034,7 @@ void VulkanRenderer::createCommandBuffers() {
 	cbAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	cbAllocInfo.commandPool = graphicsCommandPool;
 	cbAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;	// VK_COMMAND_BUFFER_LEVEL_PRIMARY   : Buffer you submit directly to queue. Can't be called by other buffers
-															// VK_COMMAND_BUFFER_LEVEL_SECONDARY : Buffer can't be called directly. Can be called from other buffers via "vkCmdExecuteCommans" when recording commands in primary buffer
+	// VK_COMMAND_BUFFER_LEVEL_SECONDARY : Buffer can't be called directly. Can be called from other buffers via "vkCmdExecuteCommans" when recording commands in primary buffer
 	cbAllocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
 	// Allocate command buffers and place handles in array of buffers (no need to destroy in clean-up, as this is done when the Command Pool is destroyed)
@@ -1256,7 +1256,7 @@ void VulkanRenderer::createDescriptorSets() {
 		*/
 
 		// List of Descriptor Set Writes
-		std::vector<VkWriteDescriptorSet> setWrites = { vpSetWrite/*, modelSetWrite*/};
+		std::vector<VkWriteDescriptorSet> setWrites = { vpSetWrite/*, modelSetWrite*/ };
 		// Update the descriptor sets with new buffer/binding info
 		vkUpdateDescriptorSets(mainDevice.logicalDevice, static_cast<uint32_t>(setWrites.size()), setWrites.data(), 0, nullptr);
 	}
@@ -1887,7 +1887,7 @@ int VulkanRenderer::createTextureImage(std::string fileName) {
 int VulkanRenderer::createTexture(std::string fileName) {
 	// Create Texture Image and get its location in array
 	int textureImageLoc = createTextureImage(fileName);
-	
+
 	// Create Image View and add to list
 	VkImageView imageView = createImageView(textureImages[textureImageLoc], VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 	textureImageViews.push_back(imageView);
