@@ -21,6 +21,10 @@
 #include "Mesh.h"
 #include "MeshModel.h"
 
+#include "ValidationManager.h"
+#include "ShaderManager.h"
+#include "PipelineManager.h"
+
 #include "Utilities.h"
 
 class VulkanRenderer {
@@ -55,10 +59,7 @@ private:
 
 	// Vulkan Components
 	VkInstance instance;
-	struct {
-		VkPhysicalDevice physicalDevice;
-		VkDevice logicalDevice;
-	} mainDevice;
+	OUR_DEVICE_T mainDevice;
 	VkQueue graphicsQueue;
 	VkQueue presentationQueue;
 	VkSurfaceKHR surface;
@@ -136,7 +137,6 @@ private:
 	void createRenderPass();
 	void createDescriptorSetLayout();
 	void createPushConstantRange();
-	void createGraphicsPipeline();
 	void createColourBufferImage();
 	void createDepthBufferImage();
 	void createFramebuffers();
@@ -166,7 +166,6 @@ private:
 	bool checkInstanceExtensionSupport(std::vector<const char*>* checkExtensions);
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 	bool checkDeviceSuitable(VkPhysicalDevice device);
-	bool checkValidationLayerSupport();
 
 	// -- Getter Functions
 	QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device);
@@ -182,7 +181,6 @@ private:
 	VkImage createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags,
 		VkMemoryPropertyFlags propFlags, VkDeviceMemory* imageMemory);
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-	VkShaderModule createShaderModule(const std::vector<char>& code);
 
 	int createTextureImage(std::string fileName);
 	int createTexture(std::string fileName);

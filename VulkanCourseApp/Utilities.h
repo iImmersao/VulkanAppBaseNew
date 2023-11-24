@@ -10,6 +10,11 @@
 const int MAX_FRAME_DRAWS = 2;
 const int MAX_OBJECTS = 20; // Will need to increase this for more complex scenes!
 
+struct OUR_DEVICE_T {
+	VkPhysicalDevice physicalDevice;
+	VkDevice logicalDevice;
+};
+
 // Vertex data representation
 struct Vertex {
 	glm::vec3 pos; // Vertex Position (x, y, z)
@@ -26,16 +31,6 @@ struct QueueFamilyIndices {
 	bool isValid() {
 		return graphicsFamily >= 0 && presentationFamily >= 0;
 	}
-};
-
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
-const std::vector<const char*> validationLayers = {
-	"VK_LAYER_KHRONOS_validation"
 };
 
 const std::vector<const char*> deviceExtensions = {
