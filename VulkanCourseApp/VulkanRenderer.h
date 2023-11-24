@@ -24,6 +24,7 @@
 #include "ValidationManager.h"
 #include "ShaderManager.h"
 #include "PipelineManager.h"
+#include "DescriptorPoolManager.h"
 
 #include "Utilities.h"
 
@@ -52,10 +53,7 @@ private:
 	std::vector<MeshModel> modelList;
 
 	// Scene Settings
-	struct UboViewProjection {
-		glm::mat4 projection;
-		glm::mat4 view;
-	} uboViewProjection;
+	struct UboViewProjection uboViewProjection;
 
 	// Vulkan Components
 	VkInstance instance;
@@ -135,7 +133,6 @@ private:
 	void createSurface();
 	void createSwapChain();
 	void createRenderPass();
-	void createDescriptorSetLayout();
 	void createPushConstantRange();
 	void createColourBufferImage();
 	void createDepthBufferImage();
@@ -146,9 +143,6 @@ private:
 	void createTextureSampler();
 
 	void createUniformBuffers();
-	void createDescriptorPool();
-	void createDescriptorSets();
-	void createInputDescriptorSets();
 
 	void updateUniformBuffers(uint32_t imageIndex);
 

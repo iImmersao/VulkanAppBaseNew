@@ -15,6 +15,11 @@ struct OUR_DEVICE_T {
 	VkDevice logicalDevice;
 };
 
+struct UboViewProjection {
+	glm::mat4 projection;
+	glm::mat4 view;
+};
+
 // Vertex data representation
 struct Vertex {
 	glm::vec3 pos; // Vertex Position (x, y, z)
