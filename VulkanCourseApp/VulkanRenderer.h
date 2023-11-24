@@ -25,6 +25,7 @@
 #include "ShaderManager.h"
 #include "PipelineManager.h"
 #include "DescriptorPoolManager.h"
+#include "CommandBufferManager.h"
 
 #include "Utilities.h"
 
@@ -138,16 +139,12 @@ private:
 	void createDepthBufferImage();
 	void createFramebuffers();
 	void createCommandPool();
-	void createCommandBuffers();
 	void createSynchronisation();
 	void createTextureSampler();
 
 	void createUniformBuffers();
 
 	void updateUniformBuffers(uint32_t imageIndex);
-
-	// - Record Functions
-	void recordCommands(uint32_t currentImage);
 
 	// - Get Functions
 	void getPhysicalDevice();
