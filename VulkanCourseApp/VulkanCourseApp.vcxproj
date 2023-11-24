@@ -151,7 +151,9 @@
     <ClCompile Include="PipelineManager.cpp" />
     <ClCompile Include="PushConstantManager.cpp" />
     <ClCompile Include="QueueFamilyManager.cpp" />
+    <ClCompile Include="RenderPassManager.cpp" />
     <ClCompile Include="ShaderManager.cpp" />
+    <ClCompile Include="SwapChainManager.cpp" />
     <ClCompile Include="SynchronisationManager.cpp" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="UniformBufferManager.cpp" />
@@ -170,8 +172,10 @@
     <ClInclude Include="PipelineManager.h" />
     <ClInclude Include="PushConstantManager.h" />
     <ClInclude Include="QueueFamilyManager.h" />
+    <ClInclude Include="RenderPassManager.h" />
     <ClInclude Include="ShaderManager.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="SwapChainManager.h" />
     <ClInclude Include="SynchronisationManager.h" />
     <ClInclude Include="TextureManager.h" />
     <ClInclude Include="UniformBufferManager.h" />

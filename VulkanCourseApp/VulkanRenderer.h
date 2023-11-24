@@ -16,7 +16,7 @@
 #include <algorithm>
 #include <array>
 
-#include "stb_image.h"
+//#include "stb_image.h"
 
 #include "Mesh.h"
 #include "MeshModel.h"
@@ -26,6 +26,9 @@
 #include "PipelineManager.h"
 #include "DescriptorPoolManager.h"
 #include "CommandBufferManager.h"
+#include "TextureManager.h"
+#include "QueueFamilyManager.h"
+#include "SwapChainManager.h"
 
 #include "Utilities.h"
 
@@ -132,7 +135,6 @@ private:
 	void createInstance();
 	void createLogicalDevice();
 	void createSurface();
-	void createSwapChain();
 	void createRenderPass();
 	void createPushConstantRange();
 	void createColourBufferImage();
@@ -157,27 +159,5 @@ private:
 	bool checkInstanceExtensionSupport(std::vector<const char*>* checkExtensions);
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 	bool checkDeviceSuitable(VkPhysicalDevice device);
-
-	// -- Getter Functions
-	QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device);
-	SwapChainDetails getSwapChainDetails(VkPhysicalDevice device);
-
-	// -- Choose Functions
-	VkSurfaceFormatKHR chooseBestSurfaceFormat(const std::vector < VkSurfaceFormatKHR>& formats);
-	VkPresentModeKHR chooseBestPresentationMode(const std::vector<VkPresentModeKHR> presentationModes);
-	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
-	VkFormat chooseSupportedFormat(const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
-
-	// -- Create Functions
-	VkImage createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags,
-		VkMemoryPropertyFlags propFlags, VkDeviceMemory* imageMemory);
-	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-
-	int createTextureImage(std::string fileName);
-	int createTexture(std::string fileName);
-	int createTextureDescriptor(VkImageView textureImage);
-
-	// -- Loader Functions
-	stbi_uc* loadTextureFile(std::string fileName, int* width, int* height, VkDeviceSize* imageSize);
 };
 

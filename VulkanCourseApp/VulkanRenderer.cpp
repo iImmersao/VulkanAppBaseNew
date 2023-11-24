@@ -15,7 +15,9 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		createSurface();
 		getPhysicalDevice();
 		createLogicalDevice();
-		createSwapChain();
+		SwapChainManager::createSwapChain(&mainDevice, window, &surface,
+			&swapchain, &swapChainImageFormat, &swapChainExtent,
+			&swapChainImages);
 		createRenderPass();
 		DescriptorPoolManager::createDescriptorSetLayout(&mainDevice, &descriptorSetLayout, &samplerSetLayout, &inputSetLayout);
 		createPushConstantRange();
@@ -88,7 +90,10 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		*/
 
 		// Create our default "no texture" texture
-		createTexture("plain.png");
+		TextureManager::createTexture(&mainDevice, "plain.png", &graphicsQueue, &graphicsCommandPool,
+			&textureImages, &textureImageMemory, &textureImageViews,
+			&samplerDescriptorPool, &samplerSetLayout,
+			&samplerDescriptorSets, &textureSampler);
 	}
 	catch (const std::runtime_error& e) {
 		printf("ERROR: %s\n", e.what());
@@ -292,7 +297,7 @@ void VulkanRenderer::createInstance() {
 
 void VulkanRenderer::createLogicalDevice() {
 	// Get the queue family indices for the chosen Physical Device
-	QueueFamilyIndices indices = getQueueFamilies(mainDevice.physicalDevice);
+	QueueFamilyIndices indices = QueueFamilyManager::getQueueFamilies(&mainDevice.physicalDevice, &surface);
 
 	// Vector for queue creation information, and set for family indices
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -338,91 +343,6 @@ void VulkanRenderer::createLogicalDevice() {
 	vkGetDeviceQueue(mainDevice.logicalDevice, indices.presentationFamily, 0, &presentationQueue);
 }
 
-void VulkanRenderer::createSwapChain() {
-	// Get Swap Chain details so we can pick best settings
-	SwapChainDetails swapChainDetails = getSwapChainDetails(mainDevice.physicalDevice);
-
-	// Find optimal surface values for our swap chain:
-	// 1. Choose best Surface format
-	// 2. Choose best Presentation Mode
-	// 3. Choose Swap Chain image resolution
-	VkSurfaceFormatKHR surfaceFormat = chooseBestSurfaceFormat(swapChainDetails.formats);
-	VkPresentModeKHR presentMode = chooseBestPresentationMode(swapChainDetails.presentationModes);
-	VkExtent2D extent = chooseSwapExtent(swapChainDetails.surfaceCapabilities);
-
-	// How many images are in the swap chain? Get 1 more than the minimum to allow triple buffering
-	uint32_t imageCount = swapChainDetails.surfaceCapabilities.minImageCount + 1;
-
-	// If imageCount higher than max, then clamp down to max (but zero means no limit!)
-	if (swapChainDetails.surfaceCapabilities.maxImageCount > 0 && swapChainDetails.surfaceCapabilities.maxImageCount < imageCount) {
-		imageCount = swapChainDetails.surfaceCapabilities.maxImageCount;
-	}
-	// Creation information for swap chain
-	VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
-	swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	swapChainCreateInfo.surface = surface;														// Swapchain surface
-	swapChainCreateInfo.imageFormat = surfaceFormat.format;										// Swapchain format
-	swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;								// Swapchain colour space
-	swapChainCreateInfo.presentMode = presentMode;												// Swapchain presentation mode
-	swapChainCreateInfo.imageExtent = extent;													// Swapchain image extents
-	swapChainCreateInfo.minImageCount = imageCount;												// Minimum images in swapchain
-	swapChainCreateInfo.imageArrayLayers = 1;													// Number of layers for each image in chain
-	swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;						// What attachment images will be used as (just colour, not depth?)
-	swapChainCreateInfo.preTransform = swapChainDetails.surfaceCapabilities.currentTransform;	// Transform to perform on swap chain images
-	swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;						// How to handle blending images with external graphics (i.e., other windows)
-	swapChainCreateInfo.clipped = VK_TRUE;														// Whether to clip parts of image not in view (e.g., behind another window, off screen, etc)
-
-	// Get Queue Family Indices
-	QueueFamilyIndices indices = getQueueFamilies(mainDevice.physicalDevice);
-
-	// If Graphics and Presentation families are different, then swapchain must let images be shared between families
-	if (indices.graphicsFamily != indices.presentationFamily) {
-		// Queues to share between
-		uint32_t queueFamilyIndices[] = {
-			(uint32_t)indices.graphicsFamily,
-			(uint32_t)indices.presentationFamily
-		};
-
-		swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;		// Image share handling
-		swapChainCreateInfo.queueFamilyIndexCount = 2;							// Number of queues to share images between
-		swapChainCreateInfo.pQueueFamilyIndices = queueFamilyIndices;			// Array of queues to share between
-	}
-	else {
-		swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		swapChainCreateInfo.queueFamilyIndexCount = 0;
-		swapChainCreateInfo.pQueueFamilyIndices = nullptr;
-	}
-
-	// If old swap chain been destroyed and this one replaces it, then link old one to quickly hand over responsibilities
-	swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
-
-	// Create Swapchain
-	VkResult result = vkCreateSwapchainKHR(mainDevice.logicalDevice, &swapChainCreateInfo, nullptr, &swapchain);
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create a Swapchain!");
-	}
-
-	// Save these for later, as we will need them
-	swapChainImageFormat = surfaceFormat.format;
-	swapChainExtent = extent;
-
-	// Get swap chain images (first count, then values)
-	uint32_t swapChainImageCount;
-	vkGetSwapchainImagesKHR(mainDevice.logicalDevice, swapchain, &swapChainImageCount, nullptr);
-	std::vector<VkImage> images(swapChainImageCount);
-	vkGetSwapchainImagesKHR(mainDevice.logicalDevice, swapchain, &swapChainImageCount, images.data());
-
-	for (VkImage image : images) {
-		// Store image handle
-		SwapchainImage swapChainImage = {};
-		swapChainImage.image = image;
-		swapChainImage.imageView = createImageView(image, swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-
-		// Add to swapchain image list
-		swapChainImages.push_back(swapChainImage);
-	}
-}
-
 void VulkanRenderer::createRenderPass() {
 	// Array of our subpasses
 	std::array<VkSubpassDescription, 2> subpasses {};
@@ -432,7 +352,8 @@ void VulkanRenderer::createRenderPass() {
 
 	// Colour Attachment (Input)
 	VkAttachmentDescription colourAttachment = {};
-	colourAttachment.format = chooseSupportedFormat(
+	colourAttachment.format = SwapChainManager::chooseSupportedFormat(
+		&mainDevice,
 		{ VK_FORMAT_R8G8B8A8_UNORM },
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -448,7 +369,8 @@ void VulkanRenderer::createRenderPass() {
 	// Depth attachment (Input)
 	VkAttachmentDescription depthAttachment = {};
 	// TODO: Rationalise use of chooseSupportedFormat
-	depthAttachment.format = chooseSupportedFormat(
+	depthAttachment.format = SwapChainManager::chooseSupportedFormat(
+		&mainDevice,
 		{ VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT },
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
@@ -584,7 +506,8 @@ void VulkanRenderer::createColourBufferImage() {
 	colourBufferImageView.resize(swapChainImages.size());
 
 	// Get supported format for colour attachment
-	VkFormat colourFormat = chooseSupportedFormat(
+	VkFormat colourFormat = SwapChainManager::chooseSupportedFormat(
+		&mainDevice,
 		{ VK_FORMAT_R8G8B8A8_UNORM },
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -592,11 +515,11 @@ void VulkanRenderer::createColourBufferImage() {
 
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		// Create Colour Buffer Image
-		colourBufferImage[i] = createImage(swapChainExtent.width, swapChainExtent.height, colourFormat, VK_IMAGE_TILING_OPTIMAL,
+		colourBufferImage[i] = TextureManager::createImage(&mainDevice, swapChainExtent.width, swapChainExtent.height, colourFormat, VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &colourBufferImageMemory[i]);
 
 		// Create Colour Buffer Image View
-		colourBufferImageView[i] = createImageView(colourBufferImage[i], colourFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+		colourBufferImageView[i] = TextureManager::createImageView(&mainDevice, colourBufferImage[i], colourFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 }
 
@@ -606,7 +529,8 @@ void VulkanRenderer::createDepthBufferImage() {
 	depthBufferImageView.resize(swapChainImages.size());
 
 	// Get supported format for depth buffer
-	VkFormat depthFormat = chooseSupportedFormat(
+	VkFormat depthFormat = SwapChainManager::chooseSupportedFormat(
+		&mainDevice,
 		{ VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT },
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
@@ -614,11 +538,11 @@ void VulkanRenderer::createDepthBufferImage() {
 
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		// Create Depth Buffer Image
-		depthBufferImage[i] = createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
+		depthBufferImage[i] = TextureManager::createImage(&mainDevice, swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depthBufferImageMemory[i]);
 
 		// Create Depth Buffer Image View
-		depthBufferImageView[i] = createImageView(depthBufferImage[i], depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+		depthBufferImageView[i] = TextureManager::createImageView(&mainDevice, depthBufferImage[i], depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 	}
 }
 
@@ -652,7 +576,7 @@ void VulkanRenderer::createFramebuffers() {
 
 void VulkanRenderer::createCommandPool() {
 	// Get indices of queue families from device
-	QueueFamilyIndices queueFamilyIndices = getQueueFamilies(mainDevice.physicalDevice);
+	QueueFamilyIndices queueFamilyIndices = QueueFamilyManager::getQueueFamilies(&mainDevice.physicalDevice, &surface);
 
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -873,85 +797,17 @@ bool VulkanRenderer::checkDeviceSuitable(VkPhysicalDevice device) {
 	VkPhysicalDeviceFeatures deviceFeatures;
 	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
-	QueueFamilyIndices indices = getQueueFamilies(device);
+	QueueFamilyIndices indices = QueueFamilyManager::getQueueFamilies(&device, &surface);
 
 	bool extensionsSupported = checkDeviceExtensionSupport(device);
 
 	bool swapChainValid = false;
 	if (extensionsSupported) {
-		SwapChainDetails swapChainDetails = getSwapChainDetails(device);
+		SwapChainDetails swapChainDetails = SwapChainManager::getSwapChainDetails(device, &surface);
 		swapChainValid = !swapChainDetails.presentationModes.empty() && !swapChainDetails.formats.empty();
 	}
 
 	return indices.isValid() && extensionsSupported && swapChainValid && deviceFeatures.samplerAnisotropy;
-}
-
-QueueFamilyIndices VulkanRenderer::getQueueFamilies(VkPhysicalDevice device) {
-	QueueFamilyIndices indices;
-
-	// Get all Queue Family Property info for the given device
-	uint32_t queueFamilyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
-	std::vector<VkQueueFamilyProperties> queueFamilyList(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilyList.data());
-
-	// Go through each queue family and check if it has at least 1 of the required types of queue
-	int i = 0;
-	for (const auto& queueFamily : queueFamilyList) {
-		// First check if queue family has at least one queue in that family (could have no queues)
-		// Queue can be multiple types defined through bitfield. Need to bitwise AND with VK_QUEUE_*_BIT to check if has required type
-		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-			indices.graphicsFamily = i;  // If queue family is valid, then get index
-		}
-
-		// Check if Queue Family supports presentation
-		VkBool32 presentationSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentationSupport);
-		// Check if queue is presentation type (can be both graphics and presentation)
-		if (queueFamily.queueCount > 0 && presentationSupport) {
-			indices.presentationFamily = i;
-		}
-
-		// Check if queue family indices are in a valid state, stop searching if so
-		if (indices.isValid()) {
-			break;
-		}
-
-		i++;
-	}
-
-	return indices;
-}
-
-SwapChainDetails VulkanRenderer::getSwapChainDetails(VkPhysicalDevice device) {
-	SwapChainDetails swapChainDetails;
-
-	// -- CAPABILITIES --
-	// Get the surface capabilities for the given surface on the given physical device
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
-
-	// -- FORMATS --
-	uint32_t formatCount = 0;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-
-	// If formats returned, get list of formats
-	if (formatCount != 0) {
-		swapChainDetails.formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, swapChainDetails.formats.data());
-	}
-
-	// -- PRESENTATION MODES --
-	uint32_t presentationCount = 0;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, nullptr);
-
-	// If presentation modes returned, get list of modes
-	if (presentationCount != 0) {
-		swapChainDetails.presentationModes.resize(presentationCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, swapChainDetails.presentationModes.data());
-	}
-
-	return swapChainDetails;
 }
 
 void VulkanRenderer::createSurface() {
@@ -961,270 +817,6 @@ void VulkanRenderer::createSurface() {
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create a surface!");
 	}
-}
-
-// Best format is subjective, but ours will be:
-// Format		:	VK_FORMAT_R8G8B8A8_UNORM (VK_FORMAT_B8G8R8A8_UNORM as backup)
-// colorSpace	:	VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-VkSurfaceFormatKHR VulkanRenderer::chooseBestSurfaceFormat(const std::vector < VkSurfaceFormatKHR>& formats) {
-	if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED) {
-		// This actually means that ALL formats are supported! So can just return what we want.
-		return { VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
-	}
-
-	// If restricted, search for optimal format
-	for (const auto& format : formats) {
-		if ((format.format == VK_FORMAT_R8G8B8A8_UNORM || format.format == VK_FORMAT_B8G8R8A8_UNORM)
-			&& format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-			return format;
-		}
-	}
-
-	// If we can't find what we want, just return first format and hope it works!
-	return formats[0];
-}
-
-VkPresentModeKHR VulkanRenderer::chooseBestPresentationMode(const std::vector<VkPresentModeKHR> presentationModes) {
-	// Look for desired presentation mode
-	for (const auto& presentationMode : presentationModes) {
-		if (presentationMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-			return presentationMode;
-		}
-	}
-
-	// According to Vulkan spec, this one has to be available, so can be used as default.
-	return VK_PRESENT_MODE_FIFO_KHR;
-}
-
-VkExtent2D VulkanRenderer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities) {
-	// The current extent can be variable, but if it is not set to INT_MAX, it should be set to the right value for our surface, so just use it.
-	if (surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-		return surfaceCapabilities.currentExtent;
-	}
-	else {
-		// If value can vary (i.e., extent is INT_MAX), need to set it manually
-		// So, get window size
-		int width, height;
-		glfwGetFramebufferSize(window, &width, &height);
-
-		// Create new extent using window size
-		VkExtent2D newExtent = {};
-		newExtent.width = static_cast<uint32_t>(width);
-		newExtent.height = static_cast<uint32_t>(height);
-
-		// Surface also defines max and min, so make sure withing boundaries by clamping value
-		newExtent.width = std::max(surfaceCapabilities.minImageExtent.width, std::min(surfaceCapabilities.maxImageExtent.width, newExtent.width));
-		newExtent.height = std::max(surfaceCapabilities.minImageExtent.height, std::min(surfaceCapabilities.maxImageExtent.height, newExtent.height));
-		return newExtent;
-	}
-}
-
-VkFormat VulkanRenderer::chooseSupportedFormat(const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags) {
-
-	// Loop through the options and find a compatible one
-	for (VkFormat format : formats) {
-		// Get properties for given format on this device
-		VkFormatProperties properties;
-		vkGetPhysicalDeviceFormatProperties(mainDevice.physicalDevice, format, &properties);
-
-		// Depending on tiling choice, need to check for different bit flag
-		if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & featureFlags) == featureFlags) {
-			return format;
-		}
-		else if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & featureFlags) == featureFlags) {
-			return format;
-		}
-	}
-
-	throw std::runtime_error("Failed to find a matching format!");
-}
-
-VkImage VulkanRenderer::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags, VkDeviceMemory* imageMemory) {
-	// CREATE IMAGE
-	// Image Creation Info
-	VkImageCreateInfo imageCreateInfo = {};
-	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;					// Type of image (1D, 2D, or 3D)
-	imageCreateInfo.extent.width = width;							// Width of image extent
-	imageCreateInfo.extent.height = height;							// Height of image extent
-	imageCreateInfo.extent.depth = 1;								// Depth of image (just 1, no 3D aspect)
-	imageCreateInfo.mipLevels = 1;									// Number of mipmap levels
-	imageCreateInfo.arrayLayers = 1;								// Number of levels in image array
-	imageCreateInfo.format = format;								// Format type of image
-	imageCreateInfo.tiling = tiling;								// How image data should be "tiled" (arranged for optimal reading speed)
-	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;		// Layout of image data on creation
-	imageCreateInfo.usage = useFlags;								// Bit flags defining what image will be used for
-	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;				// Number of sample for multi-sampling
-	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;		// Whether image can be shared between queues
-
-	// Create image
-	VkImage image;
-	VkResult result = vkCreateImage(mainDevice.logicalDevice, &imageCreateInfo, nullptr, &image);
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create Image!");
-	}
-
-	// CREATE MEMORY FOR IMAGE
-
-
-	// Get memory requirements for a type of image
-	VkMemoryRequirements memoryRequirements;
-	vkGetImageMemoryRequirements(mainDevice.logicalDevice, image, &memoryRequirements);
-
-	// Allocate memory using image requirements and user defined properties
-	VkMemoryAllocateInfo memoryAllocInfo = {};
-	memoryAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	memoryAllocInfo.allocationSize = memoryRequirements.size;
-	memoryAllocInfo.memoryTypeIndex = findMemoryTypeIndex(mainDevice.physicalDevice, memoryRequirements.memoryTypeBits, propFlags);
-
-	result = vkAllocateMemory(mainDevice.logicalDevice, &memoryAllocInfo, nullptr, imageMemory);
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to allocate memory for image!");
-	}
-
-	// Connect memory to image
-	result = vkBindImageMemory(mainDevice.logicalDevice, image, *imageMemory, 0);
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to bind image memory!");
-	}
-
-	return image;
-}
-
-VkImageView VulkanRenderer::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
-	VkImageViewCreateInfo viewCreateInfo = {};
-	viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewCreateInfo.image = image;										// Image to create view for
-	viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;					// Type of image (1D, 2D, 3D, Cube, etc) - may need to revisit this for displaying OBJ files?
-	viewCreateInfo.format = format;										// Format of image data
-	viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;		// Use its own value (can remap)
-	viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;		// Use its own value
-	viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;		// Use its own value
-	viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;		// Use its own value
-
-	// Subresources allow the view to view only a part of an image
-	viewCreateInfo.subresourceRange.aspectMask = aspectFlags;			// Which aspect of image to view (e.g., COLOR_BIT for viewing colour)
-	viewCreateInfo.subresourceRange.baseMipLevel = 0;					// Start mipmap level to view from
-	viewCreateInfo.subresourceRange.levelCount = 1;						// Number of mipmap levels to view
-	viewCreateInfo.subresourceRange.baseArrayLayer = 0;					// Start array level to view from
-	viewCreateInfo.subresourceRange.layerCount = 1;						// Number of array levels to view
-
-	// Create image view and return it
-	VkImageView imageView;
-	VkResult result = vkCreateImageView(mainDevice.logicalDevice, &viewCreateInfo, nullptr, &imageView);
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create an Image View!");
-	}
-
-	return imageView;
-}
-
-int VulkanRenderer::createTextureImage(std::string fileName) {
-	// Load image file
-	int width, height;
-	VkDeviceSize imageSize;
-	stbi_uc* imageData = loadTextureFile(fileName, &width, &height, &imageSize);
-
-	// Create staging buffer to hold loaded data, ready to copy to device
-	VkBuffer imageStagingBuffer;
-	VkDeviceMemory imageStagingBufferMemory;
-	createBuffer(mainDevice.physicalDevice, mainDevice.logicalDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		&imageStagingBuffer, &imageStagingBufferMemory);
-
-	void* data;
-	vkMapMemory(mainDevice.logicalDevice, imageStagingBufferMemory, 0, imageSize, 0, &data);
-	memcpy(data, imageData, static_cast<size_t>(imageSize));
-	vkUnmapMemory(mainDevice.logicalDevice, imageStagingBufferMemory);
-
-	// Free original image data
-	stbi_image_free(imageData);
-
-	// Create image to hold final texture
-	VkImage texImage;
-	VkDeviceMemory texImageMemory;
-	texImage = createImage(width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &texImageMemory);
-
-	// COPY DATA TO IMAGE
-	// Transition image to be DST for copy operation
-	transitionImageLayout(mainDevice.logicalDevice, graphicsQueue, graphicsCommandPool,
-		texImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-
-	// Copy image data
-	copyImageBuffer(mainDevice.logicalDevice, graphicsQueue, graphicsCommandPool, imageStagingBuffer, texImage, width, height);
-
-	// Transition image to be shader readable for shader usage
-	transitionImageLayout(mainDevice.logicalDevice, graphicsQueue, graphicsCommandPool,
-		texImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-	// Add texture data to vector for reference
-	textureImages.push_back(texImage);
-	textureImageMemory.push_back(texImageMemory);
-
-	// Destroy staging buffers
-	vkDestroyBuffer(mainDevice.logicalDevice, imageStagingBuffer, nullptr);
-	vkFreeMemory(mainDevice.logicalDevice, imageStagingBufferMemory, nullptr);
-
-	// Return image of new texture image
-	return textureImages.size() - 1;
-}
-
-int VulkanRenderer::createTexture(std::string fileName) {
-	// Create Texture Image and get its location in array
-	int textureImageLoc = createTextureImage(fileName);
-
-	// Create Image View and add to list
-	VkImageView imageView = createImageView(textureImages[textureImageLoc], VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
-	textureImageViews.push_back(imageView);
-
-	// Create Texture Descriptor
-	int descriptorLoc = createTextureDescriptor(imageView);
-
-	// Return location of set with texture
-	return descriptorLoc;
-}
-
-int VulkanRenderer::createTextureDescriptor(VkImageView textureImage) {
-	VkDescriptorSet descriptorSet;
-
-	// Descriptor Set Allocation Info
-	VkDescriptorSetAllocateInfo setAllocInfo = {};
-	setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	setAllocInfo.descriptorPool = samplerDescriptorPool;
-	setAllocInfo.descriptorSetCount = 1;
-	setAllocInfo.pSetLayouts = &samplerSetLayout;
-
-	// Allocate Descriptor Sets
-	VkResult result = vkAllocateDescriptorSets(mainDevice.logicalDevice, &setAllocInfo, &descriptorSet);
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to allocate Texture Descriptor Sets!");
-	}
-
-	// Texture Image Info
-	VkDescriptorImageInfo imageInfo = {};
-	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;		// Image layout when in use
-	imageInfo.imageView = textureImage;										// Image to bind to set
-	imageInfo.sampler = textureSampler;										// Sampler to use for set
-
-	// Descriptor Write Info
-	VkWriteDescriptorSet descriptorWrite = {};
-	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = descriptorSet;
-	descriptorWrite.dstBinding = 0;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorWrite.descriptorCount = 1;
-	descriptorWrite.pImageInfo = &imageInfo;
-
-	// Update new descriptor set
-	vkUpdateDescriptorSets(mainDevice.logicalDevice, 1, &descriptorWrite, 0, nullptr);
-
-	// Add descriptor set to list
-	samplerDescriptorSets.push_back(descriptorSet);
-
-	// Return descriptor set location
-	return samplerDescriptorSets.size() - 1;
 }
 
 int VulkanRenderer::createMeshModel(std::string modelFile) {
@@ -1249,7 +841,10 @@ int VulkanRenderer::createMeshModel(std::string modelFile) {
 		}
 		else {
 			// Otherwise, create texture and set value to index of new texture
-			matToTex[i] = createTexture(textureNames[i]);
+			matToTex[i] = TextureManager::createTexture(&mainDevice, textureNames[i], &graphicsQueue, &graphicsCommandPool,
+				&textureImages, &textureImageMemory, &textureImageViews,
+				&samplerDescriptorPool, &samplerSetLayout,
+				&samplerDescriptorSets, &textureSampler);
 		}
 	}
 
@@ -1262,21 +857,4 @@ int VulkanRenderer::createMeshModel(std::string modelFile) {
 	modelList.push_back(meshModel);
 
 	return modelList.size() - 1;
-}
-
-stbi_uc* VulkanRenderer::loadTextureFile(std::string fileName, int* width, int* height, VkDeviceSize* imageSize) {
-	// Number of channels image uses
-	int channels;
-
-	// Load pixel data for image
-	std::string fileLoc = "Textures/" + fileName;
-	stbi_uc* image = stbi_load(fileLoc.c_str(), width, height, &channels, STBI_rgb_alpha);
-	if (!image) {
-		throw std::runtime_error("Failed to load a Texture file! (" + fileName + ")");
-	}
-
-	// Calculate image size using given and known data
-	*imageSize = *width * *height * 4;
-
-	return image;
 }
