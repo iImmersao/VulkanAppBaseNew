@@ -29,6 +29,7 @@
 #include "TextureManager.h"
 #include "QueueFamilyManager.h"
 #include "SwapChainManager.h"
+#include "DeviceManager.h"
 
 #include "Utilities.h"
 
@@ -61,10 +62,7 @@ private:
 
 	// Vulkan Components
 	VkInstance instance;
-	OUR_DEVICE_T mainDevice;
-	VkQueue graphicsQueue;
-	VkQueue presentationQueue;
-	VkSurfaceKHR surface;
+	DeviceManager *mainDevice;
 	VkSwapchainKHR swapchain;
 
 	std::vector<SwapchainImage> swapChainImages;
@@ -133,8 +131,6 @@ private:
 	// Vulkan Functions
 	// - Create Functions
 	void createInstance();
-	void createLogicalDevice();
-	void createSurface();
 	void createRenderPass();
 	void createPushConstantRange();
 	void createColourBufferImage();
@@ -148,8 +144,6 @@ private:
 
 	void updateUniformBuffers(uint32_t imageIndex);
 
-	// - Get Functions
-	void getPhysicalDevice();
 
 	// - Allocate Functions
 	//void allocateDynamicBufferTransferSpace();
@@ -157,7 +151,5 @@ private:
 	// - Support Functions
 	// -- Checker Functions
 	bool checkInstanceExtensionSupport(std::vector<const char*>* checkExtensions);
-	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-	bool checkDeviceSuitable(VkPhysicalDevice device);
 };
 

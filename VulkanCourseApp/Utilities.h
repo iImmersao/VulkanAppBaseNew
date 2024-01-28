@@ -10,10 +10,12 @@
 const int MAX_FRAME_DRAWS = 2;
 const int MAX_OBJECTS = 20; // Will need to increase this for more complex scenes!
 
+/*
 struct OUR_DEVICE_T {
 	VkPhysicalDevice physicalDevice;
 	VkDevice logicalDevice;
 };
+*/
 
 struct UboViewProjection {
 	glm::mat4 projection;

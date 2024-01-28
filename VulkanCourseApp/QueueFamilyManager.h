@@ -11,6 +11,6 @@
 class QueueFamilyManager
 {
 public:
-	static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice *device, VkSurfaceKHR* surface);
+	//static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 };
 
