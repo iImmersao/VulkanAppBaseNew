@@ -1,6 +1,6 @@
 #include "TextureManager.h"
 
-VkImage TextureManager::createImage(OUR_DEVICE_T* mainDevice, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags, VkDeviceMemory* imageMemory) {
+VkImage TextureManager::createImage(DeviceManager *mainDevice, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags, VkMemoryPropertyFlags propFlags, VkDeviceMemory* imageMemory) {
 	// CREATE IMAGE
 	// Image Creation Info
 	VkImageCreateInfo imageCreateInfo = {};
@@ -20,7 +20,7 @@ VkImage TextureManager::createImage(OUR_DEVICE_T* mainDevice, uint32_t width, ui
 
 	// Create image
 	VkImage image;
-	VkResult result = vkCreateImage(mainDevice->logicalDevice, &imageCreateInfo, nullptr, &image);
+	VkResult result = vkCreateImage(mainDevice->getLogicalDevice(), &imageCreateInfo, nullptr, &image);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Image!");
 	}
@@ -30,21 +30,21 @@ VkImage TextureManager::createImage(OUR_DEVICE_T* mainDevice, uint32_t width, ui
 
 	// Get memory requirements for a type of image
 	VkMemoryRequirements memoryRequirements;
-	vkGetImageMemoryRequirements(mainDevice->logicalDevice, image, &memoryRequirements);
+	vkGetImageMemoryRequirements(mainDevice->getLogicalDevice(), image, &memoryRequirements);
 
 	// Allocate memory using image requirements and user defined properties
 	VkMemoryAllocateInfo memoryAllocInfo = {};
 	memoryAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	memoryAllocInfo.allocationSize = memoryRequirements.size;
-	memoryAllocInfo.memoryTypeIndex = findMemoryTypeIndex(mainDevice->physicalDevice, memoryRequirements.memoryTypeBits, propFlags);
+	memoryAllocInfo.memoryTypeIndex = findMemoryTypeIndex(mainDevice->getPhysicalDevice(), memoryRequirements.memoryTypeBits, propFlags);
 
-	result = vkAllocateMemory(mainDevice->logicalDevice, &memoryAllocInfo, nullptr, imageMemory);
+	result = vkAllocateMemory(mainDevice->getLogicalDevice(), &memoryAllocInfo, nullptr, imageMemory);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate memory for image!");
 	}
 
 	// Connect memory to image
-	result = vkBindImageMemory(mainDevice->logicalDevice, image, *imageMemory, 0);
+	result = vkBindImageMemory(mainDevice->getLogicalDevice(), image, *imageMemory, 0);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to bind image memory!");
 	}
@@ -52,7 +52,7 @@ VkImage TextureManager::createImage(OUR_DEVICE_T* mainDevice, uint32_t width, ui
 	return image;
 }
 
-VkImageView TextureManager::createImageView(OUR_DEVICE_T* mainDevice, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+VkImageView TextureManager::createImageView(DeviceManager *mainDevice, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
 	VkImageViewCreateInfo viewCreateInfo = {};
 	viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewCreateInfo.image = image;										// Image to create view for
@@ -72,7 +72,7 @@ VkImageView TextureManager::createImageView(OUR_DEVICE_T* mainDevice, VkImage im
 
 	// Create image view and return it
 	VkImageView imageView;
-	VkResult result = vkCreateImageView(mainDevice->logicalDevice, &viewCreateInfo, nullptr, &imageView);
+	VkResult result = vkCreateImageView(mainDevice->getLogicalDevice(), &viewCreateInfo, nullptr, &imageView);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create an Image View!");
 	}
@@ -80,7 +80,7 @@ VkImageView TextureManager::createImageView(OUR_DEVICE_T* mainDevice, VkImage im
 	return imageView;
 }
 
-int TextureManager::createTextureImage(OUR_DEVICE_T* mainDevice, std::string fileName, VkQueue *graphicsQueue, VkCommandPool *graphicsCommandPool,
+int TextureManager::createTextureImage(DeviceManager *mainDevice, std::string fileName, VkCommandPool *graphicsCommandPool,
 									std::vector<VkImage>* textureImages, std::vector<VkDeviceMemory>* textureImageMemory) {
 	// Load image file
 	int width, height;
@@ -90,14 +90,14 @@ int TextureManager::createTextureImage(OUR_DEVICE_T* mainDevice, std::string fil
 	// Create staging buffer to hold loaded data, ready to copy to device
 	VkBuffer imageStagingBuffer;
 	VkDeviceMemory imageStagingBufferMemory;
-	createBuffer(mainDevice->physicalDevice, mainDevice->logicalDevice, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	createBuffer(mainDevice->getPhysicalDevice(), mainDevice->getLogicalDevice(), imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		&imageStagingBuffer, &imageStagingBufferMemory);
 
 	void* data;
-	vkMapMemory(mainDevice->logicalDevice, imageStagingBufferMemory, 0, imageSize, 0, &data);
+	vkMapMemory(mainDevice->getLogicalDevice(), imageStagingBufferMemory, 0, imageSize, 0, &data);
 	memcpy(data, imageData, static_cast<size_t>(imageSize));
-	vkUnmapMemory(mainDevice->logicalDevice, imageStagingBufferMemory);
+	vkUnmapMemory(mainDevice->getLogicalDevice(), imageStagingBufferMemory);
 
 	// Free original image data
 	stbi_image_free(imageData);
@@ -110,14 +110,14 @@ int TextureManager::createTextureImage(OUR_DEVICE_T* mainDevice, std::string fil
 
 	// COPY DATA TO IMAGE
 	// Transition image to be DST for copy operation
-	transitionImageLayout(mainDevice->logicalDevice, *graphicsQueue, *graphicsCommandPool,
+	transitionImageLayout(mainDevice->getLogicalDevice(), mainDevice->getGraphicsQueue(), *graphicsCommandPool,
 		texImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
 	// Copy image data
-	copyImageBuffer(mainDevice->logicalDevice, *graphicsQueue, *graphicsCommandPool, imageStagingBuffer, texImage, width, height);
+	copyImageBuffer(mainDevice->getLogicalDevice(), mainDevice->getGraphicsQueue(), *graphicsCommandPool, imageStagingBuffer, texImage, width, height);
 
 	// Transition image to be shader readable for shader usage
-	transitionImageLayout(mainDevice->logicalDevice, *graphicsQueue, *graphicsCommandPool,
+	transitionImageLayout(mainDevice->getLogicalDevice(), mainDevice->getGraphicsQueue(), *graphicsCommandPool,
 		texImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	// Add texture data to vector for reference
@@ -125,19 +125,19 @@ int TextureManager::createTextureImage(OUR_DEVICE_T* mainDevice, std::string fil
 	textureImageMemory->push_back(texImageMemory);
 
 	// Destroy staging buffers
-	vkDestroyBuffer(mainDevice->logicalDevice, imageStagingBuffer, nullptr);
-	vkFreeMemory(mainDevice->logicalDevice, imageStagingBufferMemory, nullptr);
+	vkDestroyBuffer(mainDevice->getLogicalDevice(), imageStagingBuffer, nullptr);
+	vkFreeMemory(mainDevice->getLogicalDevice(), imageStagingBufferMemory, nullptr);
 
 	// Return image of new texture image
 	return textureImages->size() - 1;
 }
 
-int TextureManager::createTexture(OUR_DEVICE_T* mainDevice, std::string fileName, VkQueue* graphicsQueue, VkCommandPool* graphicsCommandPool,
+int TextureManager::createTexture(DeviceManager *mainDevice, std::string fileName, VkCommandPool* graphicsCommandPool,
 								std::vector<VkImage>* textureImages, std::vector<VkDeviceMemory>* textureImageMemory, std::vector<VkImageView> *textureImageViews,
 								VkDescriptorPool* samplerDescriptorPool, VkDescriptorSetLayout* samplerSetLayout,
 								std::vector<VkDescriptorSet>* samplerDescriptorSets, VkSampler* textureSampler) {
 	// Create Texture Image and get its location in array
-	int textureImageLoc = createTextureImage(mainDevice, fileName, graphicsQueue, graphicsCommandPool, textureImages, textureImageMemory);
+	int textureImageLoc = createTextureImage(mainDevice, fileName, graphicsCommandPool, textureImages, textureImageMemory);
 
 	// Create Image View and add to list
 	VkImageView imageView = createImageView(mainDevice, (*textureImages)[textureImageLoc], VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -150,7 +150,7 @@ int TextureManager::createTexture(OUR_DEVICE_T* mainDevice, std::string fileName
 	return descriptorLoc;
 }
 
-int TextureManager::createTextureDescriptor(OUR_DEVICE_T* mainDevice, VkImageView textureImage, VkDescriptorPool* samplerDescriptorPool, VkDescriptorSetLayout* samplerSetLayout,
+int TextureManager::createTextureDescriptor(DeviceManager *mainDevice, VkImageView textureImage, VkDescriptorPool* samplerDescriptorPool, VkDescriptorSetLayout* samplerSetLayout,
 											std::vector<VkDescriptorSet>* samplerDescriptorSets, VkSampler* textureSampler) {
 	VkDescriptorSet descriptorSet;
 
@@ -162,7 +162,7 @@ int TextureManager::createTextureDescriptor(OUR_DEVICE_T* mainDevice, VkImageVie
 	setAllocInfo.pSetLayouts = samplerSetLayout;
 
 	// Allocate Descriptor Sets
-	VkResult result = vkAllocateDescriptorSets(mainDevice->logicalDevice, &setAllocInfo, &descriptorSet);
+	VkResult result = vkAllocateDescriptorSets(mainDevice->getLogicalDevice(), &setAllocInfo, &descriptorSet);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate Texture Descriptor Sets!");
 	}
@@ -184,7 +184,7 @@ int TextureManager::createTextureDescriptor(OUR_DEVICE_T* mainDevice, VkImageVie
 	descriptorWrite.pImageInfo = &imageInfo;
 
 	// Update new descriptor set
-	vkUpdateDescriptorSets(mainDevice->logicalDevice, 1, &descriptorWrite, 0, nullptr);
+	vkUpdateDescriptorSets(mainDevice->getLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
 
 	// Add descriptor set to list
 	samplerDescriptorSets->push_back(descriptorSet);

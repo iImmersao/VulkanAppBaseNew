@@ -6,17 +6,16 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "Utilities.h"
-#include "QueueFamilyManager.h"
+//#include "Utilities.h"
+//#include "QueueFamilyManager.h"
 #include "TextureManager.h"
+#include "DeviceManager.h"
 
 class SwapChainManager {
 public:
-	static void createSwapChain(OUR_DEVICE_T* mainDevice, GLFWwindow* window, VkSurfaceKHR* surface,
+	static void createSwapChain(DeviceManager *mainDevice, GLFWwindow* window,
 		VkSwapchainKHR *swapchain, VkFormat *swapChainImageFormat, VkExtent2D *swapChainExtent,
 		std::vector<SwapchainImage> *swapChainImages);
-
-	static SwapChainDetails getSwapChainDetails(VkPhysicalDevice device, VkSurfaceKHR *surface);
 
 	static VkSurfaceFormatKHR chooseBestSurfaceFormat(const std::vector < VkSurfaceFormatKHR>& formats);
 
@@ -24,6 +23,6 @@ public:
 
 	static VkExtent2D chooseSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
 
-	static VkFormat chooseSupportedFormat(OUR_DEVICE_T* mainDevice,  const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
+	static VkFormat chooseSupportedFormat(DeviceManager *mainDevice,  const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
 };
 

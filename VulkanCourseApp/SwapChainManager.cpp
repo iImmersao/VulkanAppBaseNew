@@ -1,10 +1,10 @@
 #include "SwapChainManager.h"
 
-void SwapChainManager::createSwapChain(OUR_DEVICE_T* mainDevice, GLFWwindow* window, VkSurfaceKHR* surface,
+void SwapChainManager::createSwapChain(DeviceManager *mainDevice, GLFWwindow* window,
 									VkSwapchainKHR* swapchain, VkFormat* swapChainImageFormat, VkExtent2D* swapChainExtent,
 									std::vector<SwapchainImage> *swapChainImages) {
 	// Get Swap Chain details so we can pick best settings
-	SwapChainDetails swapChainDetails = getSwapChainDetails(mainDevice->physicalDevice, surface);
+	SwapChainDetails swapChainDetails = mainDevice->getSwapChainDetails(mainDevice->getPhysicalDevice());
 
 	// Find optimal surface values for our swap chain:
 	// 1. Choose best Surface format
@@ -24,7 +24,7 @@ void SwapChainManager::createSwapChain(OUR_DEVICE_T* mainDevice, GLFWwindow* win
 	// Creation information for swap chain
 	VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
 	swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	swapChainCreateInfo.surface = *surface;														// Swapchain surface
+	swapChainCreateInfo.surface = mainDevice->getSurface();														// Swapchain surface
 	swapChainCreateInfo.imageFormat = surfaceFormat.format;										// Swapchain format
 	swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;								// Swapchain colour space
 	swapChainCreateInfo.presentMode = presentMode;												// Swapchain presentation mode
@@ -37,7 +37,7 @@ void SwapChainManager::createSwapChain(OUR_DEVICE_T* mainDevice, GLFWwindow* win
 	swapChainCreateInfo.clipped = VK_TRUE;														// Whether to clip parts of image not in view (e.g., behind another window, off screen, etc)
 
 	// Get Queue Family Indices
-	QueueFamilyIndices indices = QueueFamilyManager::getQueueFamilies(&mainDevice->physicalDevice, surface);
+	QueueFamilyIndices indices = mainDevice->getQueueFamilies(mainDevice->getPhysicalDevice());
 
 	// If Graphics and Presentation families are different, then swapchain must let images be shared between families
 	if (indices.graphicsFamily != indices.presentationFamily) {
@@ -61,7 +61,7 @@ void SwapChainManager::createSwapChain(OUR_DEVICE_T* mainDevice, GLFWwindow* win
 	swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
 	// Create Swapchain
-	VkResult result = vkCreateSwapchainKHR(mainDevice->logicalDevice, &swapChainCreateInfo, nullptr, swapchain);
+	VkResult result = vkCreateSwapchainKHR(mainDevice->getLogicalDevice(), &swapChainCreateInfo, nullptr, swapchain);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create a Swapchain!");
 	}
@@ -72,9 +72,9 @@ void SwapChainManager::createSwapChain(OUR_DEVICE_T* mainDevice, GLFWwindow* win
 
 	// Get swap chain images (first count, then values)
 	uint32_t swapChainImageCount;
-	vkGetSwapchainImagesKHR(mainDevice->logicalDevice, *swapchain, &swapChainImageCount, nullptr);
+	vkGetSwapchainImagesKHR(mainDevice->getLogicalDevice(), *swapchain, &swapChainImageCount, nullptr);
 	std::vector<VkImage> images(swapChainImageCount);
-	vkGetSwapchainImagesKHR(mainDevice->logicalDevice, *swapchain, &swapChainImageCount, images.data());
+	vkGetSwapchainImagesKHR(mainDevice->getLogicalDevice(), *swapchain, &swapChainImageCount, images.data());
 
 	for (VkImage image : images) {
 		// Store image handle
@@ -85,36 +85,6 @@ void SwapChainManager::createSwapChain(OUR_DEVICE_T* mainDevice, GLFWwindow* win
 		// Add to swapchain image list
 		swapChainImages->push_back(swapChainImage);
 	}
-}
-
-SwapChainDetails SwapChainManager::getSwapChainDetails(VkPhysicalDevice device, VkSurfaceKHR *surface) {
-	SwapChainDetails swapChainDetails;
-
-	// -- CAPABILITIES --
-	// Get the surface capabilities for the given surface on the given physical device
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, *surface, &swapChainDetails.surfaceCapabilities);
-
-	// -- FORMATS --
-	uint32_t formatCount = 0;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, *surface, &formatCount, nullptr);
-
-	// If formats returned, get list of formats
-	if (formatCount != 0) {
-		swapChainDetails.formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, *surface, &formatCount, swapChainDetails.formats.data());
-	}
-
-	// -- PRESENTATION MODES --
-	uint32_t presentationCount = 0;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, *surface, &presentationCount, nullptr);
-
-	// If presentation modes returned, get list of modes
-	if (presentationCount != 0) {
-		swapChainDetails.presentationModes.resize(presentationCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, *surface, &presentationCount, swapChainDetails.presentationModes.data());
-	}
-
-	return swapChainDetails;
 }
 
 // Best format is subjective, but ours will be:
@@ -173,13 +143,13 @@ VkExtent2D SwapChainManager::chooseSwapExtent(GLFWwindow* window, const VkSurfac
 	}
 }
 
-VkFormat SwapChainManager::chooseSupportedFormat(OUR_DEVICE_T* mainDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags) {
+VkFormat SwapChainManager::chooseSupportedFormat(DeviceManager *mainDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags) {
 
 	// Loop through the options and find a compatible one
 	for (VkFormat format : formats) {
 		// Get properties for given format on this device
 		VkFormatProperties properties;
-		vkGetPhysicalDeviceFormatProperties(mainDevice->physicalDevice, format, &properties);
+		vkGetPhysicalDeviceFormatProperties(mainDevice->getPhysicalDevice(), format, &properties);
 
 		// Depending on tiling choice, need to check for different bit flag
 		if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & featureFlags) == featureFlags) {

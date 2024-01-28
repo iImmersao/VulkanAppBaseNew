@@ -1,9 +1,26 @@
 #include "DeviceManager.h"
 
-void DeviceManager::getPhysicalDevice(VkInstance *instance, VkSurfaceKHR* surface) {
+DeviceManager::DeviceManager()
+{
+	window = NULL;
+	instance = NULL;
+	surface = NULL;
+	physicalDevice = NULL;
+	logicalDevice = NULL;
+}
+
+DeviceManager::DeviceManager(VkInstance instance, GLFWwindow* window) {
+	this->window = window;
+	this->instance = instance;
+	createSurface();
+	selectPhysicalDevice();
+	createLogicalDevice();
+}
+
+void DeviceManager::selectPhysicalDevice() {
 	// Enumerate Physical devices the vkInstance can access
 	uint32_t deviceCount = 0;
-	vkEnumeratePhysicalDevices(*instance, &deviceCount, nullptr);
+	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
 	// If no devices available, then none support Vulkan!
 	if (deviceCount == 0) {
@@ -12,23 +29,23 @@ void DeviceManager::getPhysicalDevice(VkInstance *instance, VkSurfaceKHR* surfac
 
 	// Get list of Physical Devices
 	std::vector<VkPhysicalDevice> deviceList(deviceCount);
-	vkEnumeratePhysicalDevices(*instance, &deviceCount, deviceList.data());
+	vkEnumeratePhysicalDevices(instance, &deviceCount, deviceList.data());
 
 	for (const auto& device : deviceList) {
-		if (checkDeviceSuitable(device, surface)) {
-			mainDevice.physicalDevice = device;
+		if (checkDeviceSuitable(device)) {
+			physicalDevice = device;
 			break;
 		}
 	}
 
 	// Get properties of our new device
 	VkPhysicalDeviceProperties deviceProperties;
-	vkGetPhysicalDeviceProperties(mainDevice.physicalDevice, &deviceProperties);
+	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 
 	//minUniformBufferOffset = deviceProperties.limits.minUniformBufferOffsetAlignment;
 }
 
-bool DeviceManager::checkDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR *surface) {
+bool DeviceManager::checkDeviceSuitable(VkPhysicalDevice device) {
 	/*
 	// Information about the device itself (ID, name, type, vendor, etc)
 	VkPhysicalDeviceProperties deviceProperties;
@@ -39,13 +56,13 @@ bool DeviceManager::checkDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR *s
 	VkPhysicalDeviceFeatures deviceFeatures;
 	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
-	QueueFamilyIndices indices = QueueFamilyManager::getQueueFamilies(&device, surface);
+	QueueFamilyIndices indices = getQueueFamilies(device);
 
 	bool extensionsSupported = checkDeviceExtensionSupport(device);
 
 	bool swapChainValid = false;
 	if (extensionsSupported) {
-		SwapChainDetails swapChainDetails = SwapChainManager::getSwapChainDetails(device, surface);
+		SwapChainDetails swapChainDetails = getSwapChainDetails(device);
 		swapChainValid = !swapChainDetails.presentationModes.empty() && !swapChainDetails.formats.empty();
 	}
 
@@ -84,9 +101,9 @@ bool DeviceManager::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 	return true;
 }
 
-void DeviceManager::createLogicalDevice(VkSurfaceKHR* surface, VkQueue **graphicsQueue, VkQueue **presentationQueue) {
+void DeviceManager::createLogicalDevice() {
 	// Get the queue family indices for the chosen Physical Device
-	QueueFamilyIndices indices = QueueFamilyManager::getQueueFamilies(&mainDevice.physicalDevice, surface);
+	QueueFamilyIndices indices = getQueueFamilies(physicalDevice);
 
 	// Vector for queue creation information, and set for family indices
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -120,7 +137,7 @@ void DeviceManager::createLogicalDevice(VkSurfaceKHR* surface, VkQueue **graphic
 	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;	// Physical Device features the Logical Device will use
 
 	// Create the logical device for the given physical device
-	VkResult result = vkCreateDevice(mainDevice.physicalDevice, &deviceCreateInfo, nullptr, &mainDevice.logicalDevice);
+	VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create a Logical Device!");
 	}
@@ -128,6 +145,113 @@ void DeviceManager::createLogicalDevice(VkSurfaceKHR* surface, VkQueue **graphic
 	// Queues are created at the same time as the device...
 	// So we want handle to queues
 	// From given logical device of given Queue Family of given Queue Index (0, since only one queue), place reference in given VkQueue
-	vkGetDeviceQueue(mainDevice.logicalDevice, indices.graphicsFamily, 0, *graphicsQueue);
-	vkGetDeviceQueue(mainDevice.logicalDevice, indices.presentationFamily, 0, *presentationQueue);
+	vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
+	vkGetDeviceQueue(logicalDevice, indices.presentationFamily, 0, &presentationQueue);
+}
+
+void DeviceManager::createSurface() {
+	// Create Surface (creating a surface create info struct, runs the create surface function, returns result)
+	// GLFW does all this itself, but if not using GLFW, all this needs to be done specifically for the platform being use, e.g., for Win32, Linux, etc.
+	VkResult result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
+	if (result != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create a surface!");
+	}
+}
+
+SwapChainDetails DeviceManager::getSwapChainDetails(VkPhysicalDevice device)
+{
+	SwapChainDetails swapChainDetails;
+
+	// -- CAPABILITIES --
+	// Get the surface capabilities for the given surface on the given physical device
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &swapChainDetails.surfaceCapabilities);
+
+	// -- FORMATS --
+	uint32_t formatCount = 0;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+
+	// If formats returned, get list of formats
+	if (formatCount != 0) {
+		swapChainDetails.formats.resize(formatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, swapChainDetails.formats.data());
+	}
+
+	// -- PRESENTATION MODES --
+	uint32_t presentationCount = 0;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, nullptr);
+
+	// If presentation modes returned, get list of modes
+	if (presentationCount != 0) {
+		swapChainDetails.presentationModes.resize(presentationCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, swapChainDetails.presentationModes.data());
+	}
+
+	return swapChainDetails;
+}
+
+QueueFamilyIndices DeviceManager::getQueueFamilies(VkPhysicalDevice device) {
+	QueueFamilyIndices indices;
+
+	// Get all Queue Family Property info for the given device
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+	std::vector<VkQueueFamilyProperties> queueFamilyList(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilyList.data());
+
+	// Go through each queue family and check if it has at least 1 of the required types of queue
+	int i = 0;
+	for (const auto& queueFamily : queueFamilyList) {
+		// First check if queue family has at least one queue in that family (could have no queues)
+		// Queue can be multiple types defined through bitfield. Need to bitwise AND with VK_QUEUE_*_BIT to check if has required type
+		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+			indices.graphicsFamily = i;  // If queue family is valid, then get index
+		}
+
+		// Check if Queue Family supports presentation
+		VkBool32 presentationSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentationSupport);
+		// Check if queue is presentation type (can be both graphics and presentation)
+		if (queueFamily.queueCount > 0 && presentationSupport) {
+			indices.presentationFamily = i;
+		}
+
+		// Check if queue family indices are in a valid state, stop searching if so
+		if (indices.isValid()) {
+			break;
+		}
+
+		i++;
+	}
+
+	return indices;
+}
+
+VkPhysicalDevice DeviceManager::getPhysicalDevice() {
+	return physicalDevice;
+}
+
+VkDevice DeviceManager::getLogicalDevice() {
+	return logicalDevice;
+}
+
+VkSurfaceKHR DeviceManager::getSurface()
+{
+	return surface;
+}
+
+VkQueue DeviceManager::getGraphicsQueue()
+{
+	return graphicsQueue;
+}
+
+VkQueue DeviceManager::getPresentationQueue()
+{
+	return presentationQueue;
+}
+
+DeviceManager::~DeviceManager() {
+	printf("Destroying DeviceManager instance\n");
+	vkDestroyDevice(logicalDevice, nullptr);
+	vkDestroySurfaceKHR(instance, surface, nullptr);
 }

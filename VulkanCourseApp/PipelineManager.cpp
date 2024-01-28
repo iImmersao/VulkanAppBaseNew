@@ -3,7 +3,7 @@
 PipelineManager::PipelineManager() {
 }
 
-void PipelineManager::createGraphicsPipeline(OUR_DEVICE_T* mainDevice, VkExtent2D* swapChainExtent, VkDescriptorSetLayout* descriptorSetLayout, VkDescriptorSetLayout* samplerSetLayout,
+void PipelineManager::createGraphicsPipeline(DeviceManager *mainDevice, VkExtent2D* swapChainExtent, VkDescriptorSetLayout* descriptorSetLayout, VkDescriptorSetLayout* samplerSetLayout,
 											VkPushConstantRange *pushConstantRange, VkRenderPass *renderPass, VkPipeline *graphicsPipeline, VkPipelineLayout* pipelineLayout,
 											VkPipeline *secondPipeline, VkPipelineLayout* secondPipelineLayout, VkDescriptorSetLayout *inputSetLayout) {
 	// Read in SPIR-V code of shaders
@@ -175,7 +175,7 @@ void PipelineManager::createGraphicsPipeline(OUR_DEVICE_T* mainDevice, VkExtent2
 	pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRange;
 
 	// Create Pipeline Layout
-	VkResult result = vkCreatePipelineLayout(mainDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, pipelineLayout);
+	VkResult result = vkCreatePipelineLayout(mainDevice->getLogicalDevice(), &pipelineLayoutCreateInfo, nullptr, pipelineLayout);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Pipeline Layout!");
 	}
@@ -211,14 +211,14 @@ void PipelineManager::createGraphicsPipeline(OUR_DEVICE_T* mainDevice, VkExtent2
 	pipelineCreateInfo.basePipelineIndex = -1;							// or index of pipeline being created to derive from (in case creating multiple at once)
 
 	// Create Graphics Pipeline
-	result = vkCreateGraphicsPipelines(mainDevice->logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, graphicsPipeline);
+	result = vkCreateGraphicsPipelines(mainDevice->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, graphicsPipeline);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create a Graphics Pipeline");
 	}
 
 	// Destroy Shader Modules, as they are no longer needed after Pipeline created
-	vkDestroyShaderModule(mainDevice->logicalDevice, fragmentShaderModule, nullptr);
-	vkDestroyShaderModule(mainDevice->logicalDevice, vertexShaderModule, nullptr);
+	vkDestroyShaderModule(mainDevice->getLogicalDevice(), fragmentShaderModule, nullptr);
+	vkDestroyShaderModule(mainDevice->getLogicalDevice(), vertexShaderModule, nullptr);
 
 
 	// CREATE SECOND PASS PIPELINE
@@ -253,7 +253,7 @@ void PipelineManager::createGraphicsPipeline(OUR_DEVICE_T* mainDevice, VkExtent2
 	secondPipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 	secondPipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
-	result = vkCreatePipelineLayout(mainDevice->logicalDevice, &secondPipelineLayoutCreateInfo, nullptr, secondPipelineLayout);
+	result = vkCreatePipelineLayout(mainDevice->getLogicalDevice(), &secondPipelineLayoutCreateInfo, nullptr, secondPipelineLayout);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create second subpass Pipeline Layout!");
 	}
@@ -263,22 +263,22 @@ void PipelineManager::createGraphicsPipeline(OUR_DEVICE_T* mainDevice, VkExtent2
 	pipelineCreateInfo.subpass = 1;							// Use second subpass
 
 	// Create second pipeline
-	result = vkCreateGraphicsPipelines(mainDevice->logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, secondPipeline);
+	result = vkCreateGraphicsPipelines(mainDevice->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, secondPipeline);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create second Graphics Pipeline!");
 	}
 
 	// Destroy second Shader Modules, as they are no longer needed after Pipeline created
-	vkDestroyShaderModule(mainDevice->logicalDevice, secondFragmentShaderModule, nullptr);
-	vkDestroyShaderModule(mainDevice->logicalDevice, secondVertexShaderModule, nullptr);
+	vkDestroyShaderModule(mainDevice->getLogicalDevice(), secondFragmentShaderModule, nullptr);
+	vkDestroyShaderModule(mainDevice->getLogicalDevice(), secondVertexShaderModule, nullptr);
 }
 
-void PipelineManager::destroyPipeline(OUR_DEVICE_T* mainDevice, VkPipeline* graphicsPipeline, VkPipelineLayout* pipelineLayout,
+void PipelineManager::destroyPipeline(DeviceManager *mainDevice, VkPipeline* graphicsPipeline, VkPipelineLayout* pipelineLayout,
 	VkPipeline* secondPipeline, VkPipelineLayout* secondPipelineLayout) {
-	vkDestroyPipeline(mainDevice->logicalDevice, *secondPipeline, nullptr);
-	vkDestroyPipelineLayout(mainDevice->logicalDevice, *secondPipelineLayout, nullptr);
-	vkDestroyPipeline(mainDevice->logicalDevice, *graphicsPipeline, nullptr);
-	vkDestroyPipelineLayout(mainDevice->logicalDevice, *pipelineLayout, nullptr);
+	vkDestroyPipeline(mainDevice->getLogicalDevice(), *secondPipeline, nullptr);
+	vkDestroyPipelineLayout(mainDevice->getLogicalDevice(), *secondPipelineLayout, nullptr);
+	vkDestroyPipeline(mainDevice->getLogicalDevice(), *graphicsPipeline, nullptr);
+	vkDestroyPipelineLayout(mainDevice->getLogicalDevice(), *pipelineLayout, nullptr);
 }
 
 PipelineManager::~PipelineManager() {

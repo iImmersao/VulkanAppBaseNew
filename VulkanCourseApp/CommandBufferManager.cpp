@@ -1,6 +1,6 @@
 #include "CommandBufferManager.h"
 
-void CommandBufferManager::createCommandBuffers(OUR_DEVICE_T* mainDevice, VkCommandPool* graphicsCommandPool, std::vector<VkCommandBuffer>* commandBuffers,
+void CommandBufferManager::createCommandBuffers(DeviceManager *mainDevice, VkCommandPool* graphicsCommandPool, std::vector<VkCommandBuffer>* commandBuffers,
 												std::vector<VkFramebuffer>* swapChainFramebuffers) {
 	// Resize command buffer count to have one for each framebuffer
 	commandBuffers->resize(swapChainFramebuffers->size());
@@ -13,7 +13,7 @@ void CommandBufferManager::createCommandBuffers(OUR_DEVICE_T* mainDevice, VkComm
 	cbAllocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers->size());
 
 	// Allocate command buffers and place handles in array of buffers (no need to destroy in clean-up, as this is done when the Command Pool is destroyed)
-	VkResult result = vkAllocateCommandBuffers(mainDevice->logicalDevice, &cbAllocInfo, commandBuffers->data());
+	VkResult result = vkAllocateCommandBuffers(mainDevice->getLogicalDevice(), &cbAllocInfo, commandBuffers->data());
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate Command Buffers!");
 	}
@@ -115,6 +115,6 @@ void CommandBufferManager::recordCommands(uint32_t currentImage, VkRenderPass *r
 	}
 }
 
-void CommandBufferManager::destroy(OUR_DEVICE_T* mainDevice, VkCommandPool* graphicsCommandPool) {
-	vkDestroyCommandPool(mainDevice->logicalDevice, *graphicsCommandPool, nullptr);
+void CommandBufferManager::destroy(DeviceManager *mainDevice, VkCommandPool* graphicsCommandPool) {
+	vkDestroyCommandPool(mainDevice->getLogicalDevice(), *graphicsCommandPool, nullptr);
 }
