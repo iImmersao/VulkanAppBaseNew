@@ -26,6 +26,7 @@
 #include "PipelineManager.h"
 #include "DescriptorPoolManager.h"
 #include "CommandBufferManager.h"
+#include "CommandPoolManager.h"
 #include "TextureManager.h"
 #include "QueueFamilyManager.h"
 #include "SwapChainManager.h"
@@ -67,7 +68,8 @@ private:
 
 	std::vector<SwapchainImage> swapChainImages;
 	std::vector<VkFramebuffer> swapChainFramebuffers;
-	std::vector<VkCommandBuffer> commandBuffers;
+
+	CommandBufferManager commandBufferManager;
 
 	std::vector<VkImage> colourBufferImage;
 	std::vector <VkDeviceMemory> colourBufferImageMemory;
@@ -117,7 +119,8 @@ private:
 	VkRenderPass renderPass;
 
 	// - Pools
-	VkCommandPool graphicsCommandPool;
+	//VkCommandPool graphicsCommandPool;
+	CommandPoolManager commandPoolManager;
 
 	// - Utility
 	VkFormat swapChainImageFormat;

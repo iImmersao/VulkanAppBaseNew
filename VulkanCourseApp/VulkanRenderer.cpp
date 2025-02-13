@@ -26,9 +26,11 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		createColourBufferImage();
 		createDepthBufferImage();
 		createFramebuffers();
-		createCommandPool();
+		commandPoolManager = CommandPoolManager::CommandPoolManager(mainDevice);
+		commandPoolManager.createCommandPool();
 
-		CommandBufferManager::createCommandBuffers(mainDevice, &graphicsCommandPool, &commandBuffers, &swapChainFramebuffers);
+		commandBufferManager = CommandBufferManager::CommandBufferManager(&commandPoolManager);
+		commandBufferManager.createCommandBuffers(mainDevice, &swapChainFramebuffers);
 		createTextureSampler();
 		//allocateDynamicBufferTransferSpace();
 		createUniformBuffers();
@@ -89,7 +91,7 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		*/
 
 		// Create our default "no texture" texture
-		TextureManager::createTexture(mainDevice, "plain.png", &graphicsCommandPool,
+		TextureManager::createTexture(mainDevice, "plain.png", commandPoolManager.getGraphicsCommandPool(),
 			&textureImages, &textureImageMemory, &textureImageViews,
 			&samplerDescriptorPool, &samplerSetLayout,
 			&samplerDescriptorSets, &textureSampler);
@@ -119,8 +121,8 @@ void VulkanRenderer::draw() {
 	uint32_t imageIndex;
 	vkAcquireNextImageKHR(mainDevice->getLogicalDevice(), swapchain, std::numeric_limits<uint64_t>::max(), imageAvailable[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-	CommandBufferManager::recordCommands(imageIndex, &renderPass, &swapChainExtent, &swapChainFramebuffers,
-		&commandBuffers, &graphicsPipeline, &pipelineLayout, &modelList,
+	commandBufferManager.recordCommands(imageIndex, &renderPass, &swapChainExtent, &swapChainFramebuffers,
+		&graphicsPipeline, &pipelineLayout, &modelList,
 		&descriptorSets, &samplerDescriptorSets,
 		&secondPipeline, &secondPipelineLayout, &inputDescriptorSets);
 
@@ -139,7 +141,9 @@ void VulkanRenderer::draw() {
 	};
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;								// Number of command buffersto submit
-	submitInfo.pCommandBuffers = &commandBuffers[imageIndex];		// Command buffer to submit
+	//submitInfo.pCommandBuffers = &commandBuffers[imageIndex];		// Command buffer to submit
+	std::vector<VkCommandBuffer> *commandBuffersPtr = commandBufferManager.getCommandBuffers();
+	submitInfo.pCommandBuffers = &(*commandBuffersPtr)[imageIndex];		// Command buffer to submit
 	submitInfo.signalSemaphoreCount = 1;							// Number of semaphores to signal
 	submitInfo.pSignalSemaphores = &renderFinished[currentFrame];	// Sempahores to signal when command buffer finishes
 
@@ -218,7 +222,8 @@ void VulkanRenderer::cleanup() {
 		vkDestroySemaphore(mainDevice->getLogicalDevice(), imageAvailable[i], nullptr);
 		vkDestroyFence(mainDevice->getLogicalDevice(), drawFences[i], nullptr);
 	}
-	CommandBufferManager::destroy(mainDevice, &graphicsCommandPool);
+	commandPoolManager.destroy();
+	//CommandBufferManager::destroy(mainDevice, &graphicsCommandPool);
 	for (auto framebuffer : swapChainFramebuffers) {
 		vkDestroyFramebuffer(mainDevice->getLogicalDevice(), framebuffer, nullptr);
 	}
@@ -586,7 +591,7 @@ void VulkanRenderer::createCommandPool() {
 	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;	// Queue Family type that buffers from this command pool will use
 
 	// Create a Graphics Queue Family Command Pool
-	VkResult result = vkCreateCommandPool(mainDevice->getLogicalDevice(), &poolInfo, nullptr, &graphicsCommandPool);
+	VkResult result = vkCreateCommandPool(mainDevice->getLogicalDevice(), &poolInfo, nullptr, commandPoolManager.getGraphicsCommandPool());
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create a Command Pool!");
 	}
@@ -750,7 +755,7 @@ int VulkanRenderer::createMeshModel(std::string modelFile) {
 		}
 		else {
 			// Otherwise, create texture and set value to index of new texture
-			matToTex[i] = TextureManager::createTexture(mainDevice, textureNames[i], &graphicsCommandPool,
+			matToTex[i] = TextureManager::createTexture(mainDevice, textureNames[i], commandPoolManager.getGraphicsCommandPool(),
 				&textureImages, &textureImageMemory, &textureImageViews,
 				&samplerDescriptorPool, &samplerSetLayout,
 				&samplerDescriptorSets, &textureSampler);
@@ -758,7 +763,7 @@ int VulkanRenderer::createMeshModel(std::string modelFile) {
 	}
 
 	// Load in all our meshes
-	std::vector<Mesh> modelMeshes = MeshModel::LoadNode(mainDevice->getPhysicalDevice(), mainDevice->getLogicalDevice(), mainDevice->getGraphicsQueue(), graphicsCommandPool,
+	std::vector<Mesh> modelMeshes = MeshModel::LoadNode(mainDevice->getPhysicalDevice(), mainDevice->getLogicalDevice(), mainDevice->getGraphicsQueue(), *commandPoolManager.getGraphicsCommandPool(),
 		scene->mRootNode, scene, matToTex);
 
 	// Create mesh model and add to list

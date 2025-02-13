@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CommandBufferManager.cpp" />
+    <ClCompile Include="CommandPoolManager.cpp" />
     <ClCompile Include="ConfigManager.cpp" />
     <ClCompile Include="DescriptorPoolManager.cpp" />
     <ClCompile Include="DeviceManager.cpp" />
@@ -162,6 +163,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CommandBufferManager.h" />
+    <ClInclude Include="CommandPoolManager.h" />
     <ClInclude Include="ConfigManager.h" />
     <ClInclude Include="DescriptorPoolManager.h" />
     <ClInclude Include="DeviceManager.h" />
