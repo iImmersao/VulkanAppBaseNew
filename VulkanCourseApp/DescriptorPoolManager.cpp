@@ -1,7 +1,15 @@
 #include "DescriptorPoolManager.h"
 
-void DescriptorPoolManager::createDescriptorPool(DeviceManager *mainDevice, std::vector<VkBuffer> *vpUniformBuffer, std::vector<SwapchainImage> *swapChainImages,
-												VkDescriptorPool *descriptorPool, VkDescriptorPool* samplerDescriptorPool, VkDescriptorPool* inputDescriptorPool,
+DescriptorPoolManager::DescriptorPoolManager()
+{
+}
+
+DescriptorPoolManager::DescriptorPoolManager(DeviceManager* mainDevice)
+{
+	this->mainDevice = mainDevice;
+}
+
+void DescriptorPoolManager::createDescriptorPool(std::vector<VkBuffer> *vpUniformBuffer, std::vector<SwapchainImage> *swapChainImages,
 												std::vector <VkImageView>* colourBufferImageView, std::vector <VkImageView>* depthBufferImageView) {
 	// CREATE UNIFORM DESCRIPTOR POOL
 	// Type of descriptors + how many DESCRIPTORS, not Descriptor Sets (combined makes the pool size)
@@ -28,7 +36,7 @@ void DescriptorPoolManager::createDescriptorPool(DeviceManager *mainDevice, std:
 	poolCreateInfo.pPoolSizes = descriptorPoolSizes.data();								// Pool Sizes to create pool with
 
 	// Create Descriptor Pool
-	VkResult result = vkCreateDescriptorPool(mainDevice->getLogicalDevice(), &poolCreateInfo, nullptr, descriptorPool);
+	VkResult result = vkCreateDescriptorPool(mainDevice->getLogicalDevice(), &poolCreateInfo, nullptr, &descriptorPool);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Descriptor Set Pool!");
 	}
@@ -46,7 +54,7 @@ void DescriptorPoolManager::createDescriptorPool(DeviceManager *mainDevice, std:
 	samplerPoolCreateInfo.pPoolSizes = &samplerPoolSize;								// Pool Sizes to create pool with
 
 	// Create Descriptor Pool
-	result = vkCreateDescriptorPool(mainDevice->getLogicalDevice(), &samplerPoolCreateInfo, nullptr, samplerDescriptorPool);
+	result = vkCreateDescriptorPool(mainDevice->getLogicalDevice(), &samplerPoolCreateInfo, nullptr, &samplerDescriptorPool);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Sampler Descriptor Set Pool!");
 	}
@@ -71,29 +79,28 @@ void DescriptorPoolManager::createDescriptorPool(DeviceManager *mainDevice, std:
 	inputPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(inputPoolSizes.size());
 	inputPoolCreateInfo.pPoolSizes = inputPoolSizes.data();
 
-	result = vkCreateDescriptorPool(mainDevice->getLogicalDevice(), &inputPoolCreateInfo, nullptr, inputDescriptorPool);
+	result = vkCreateDescriptorPool(mainDevice->getLogicalDevice(), &inputPoolCreateInfo, nullptr, &inputDescriptorPool);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Input Descriptor Set Pool!");
 	}
 }
 
-void DescriptorPoolManager::createDescriptorSets(DeviceManager *mainDevice, std::vector<VkBuffer>* vpUniformBuffer, VkDescriptorPool* descriptorPool, std::vector<SwapchainImage>* swapChainImages,
-												std::vector<VkDescriptorSet>* descriptorSets, VkDescriptorSetLayout* descriptorSetLayout) {
+void DescriptorPoolManager::createDescriptorSets(std::vector<VkBuffer>* vpUniformBuffer, std::vector<SwapchainImage>* swapChainImages) {
 	// Resize Descriptor Set list so one for every buffer
-	descriptorSets->resize(swapChainImages->size());
+	descriptorSets.resize(swapChainImages->size());
 
-	std::vector<VkDescriptorSetLayout> setLayouts(swapChainImages->size(), *descriptorSetLayout);	// Re-use same layout for now
+	std::vector<VkDescriptorSetLayout> setLayouts(swapChainImages->size(), descriptorSetLayout);	// Re-use same layout for now
 
 	// Descriptor Set Allocation Info
 	// Note: only need one set at present, because both bindings (VP and Model) are part of the same set (set=0)
 	VkDescriptorSetAllocateInfo setAllocInfo = {};
 	setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	setAllocInfo.descriptorPool = *descriptorPool;												// Pool to allocate Descriptor Set from
+	setAllocInfo.descriptorPool = descriptorPool;												// Pool to allocate Descriptor Set from
 	setAllocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages->size());			// Number of sets to allocate
 	setAllocInfo.pSetLayouts = setLayouts.data();												// Layouts to use to allocate sets (1:1 relationship)
 
 	// Allocate Descriptor Sets (multiple)
-	VkResult result = vkAllocateDescriptorSets(mainDevice->getLogicalDevice(), &setAllocInfo, descriptorSets->data());
+	VkResult result = vkAllocateDescriptorSets(mainDevice->getLogicalDevice(), &setAllocInfo, descriptorSets.data());
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate Descriptor Sets!");
 	}
@@ -110,7 +117,7 @@ void DescriptorPoolManager::createDescriptorSets(DeviceManager *mainDevice, std:
 		// Data about connection between binding and buffer
 		VkWriteDescriptorSet vpSetWrite = {};
 		vpSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		vpSetWrite.dstSet = (*descriptorSets)[i];										// Descriptor Set to update
+		vpSetWrite.dstSet = (descriptorSets)[i];										// Descriptor Set to update
 		vpSetWrite.dstBinding = 0;													// Binding to update (matches with binding on layout/shader)
 		vpSetWrite.dstArrayElement = 0;												// Index in array to update
 		vpSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;				// Type of descriptor (should match type of set!)
@@ -143,24 +150,23 @@ void DescriptorPoolManager::createDescriptorSets(DeviceManager *mainDevice, std:
 	}
 }
 
-void DescriptorPoolManager::createInputDescriptorSets(DeviceManager *mainDevice, std::vector<SwapchainImage>* swapChainImages, VkDescriptorPool* inputDescriptorPool,
-													std::vector<VkDescriptorSet>* inputDescriptorSets, VkDescriptorSetLayout* inputSetLayout,
+void DescriptorPoolManager::createInputDescriptorSets(std::vector<SwapchainImage>* swapChainImages,
 													std::vector <VkImageView> *colourBufferImageView, std::vector <VkImageView> *depthBufferImageView) {
 	// Resize array to hold descriptor set for each swap chain image
-	inputDescriptorSets->resize(swapChainImages->size());
+	inputDescriptorSets.resize(swapChainImages->size());
 
 	// Fill array of layouts ready for set creation
-	std::vector<VkDescriptorSetLayout> setLayouts(swapChainImages->size(), *inputSetLayout);
+	std::vector<VkDescriptorSetLayout> setLayouts(swapChainImages->size(), inputSetLayout);
 
 	// Input Attachment Descriptor Set Allocation Info
 	VkDescriptorSetAllocateInfo setAllocInfo = {};
 	setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	setAllocInfo.descriptorPool = *inputDescriptorPool;
+	setAllocInfo.descriptorPool = inputDescriptorPool;
 	setAllocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages->size());
 	setAllocInfo.pSetLayouts = setLayouts.data();
 
 	// Allocate Descriptor Sets
-	VkResult result = vkAllocateDescriptorSets(mainDevice->getLogicalDevice(), &setAllocInfo, inputDescriptorSets->data());
+	VkResult result = vkAllocateDescriptorSets(mainDevice->getLogicalDevice(), &setAllocInfo, inputDescriptorSets.data());
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to allocate Input Attachment Descriptor Sets!");
 	}
@@ -176,7 +182,7 @@ void DescriptorPoolManager::createInputDescriptorSets(DeviceManager *mainDevice,
 		// Colour Attachment Descriptor Write
 		VkWriteDescriptorSet colourWrite = {};
 		colourWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		colourWrite.dstSet = (*inputDescriptorSets)[i];
+		colourWrite.dstSet = (inputDescriptorSets)[i];
 		colourWrite.dstBinding = 0;
 		colourWrite.dstArrayElement = 0;
 		colourWrite.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
@@ -192,7 +198,7 @@ void DescriptorPoolManager::createInputDescriptorSets(DeviceManager *mainDevice,
 		// Depth Attachment Descriptor Write
 		VkWriteDescriptorSet depthWrite = {};
 		depthWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		depthWrite.dstSet = (*inputDescriptorSets)[i];
+		depthWrite.dstSet = (inputDescriptorSets)[i];
 		depthWrite.dstBinding = 1;
 		depthWrite.dstArrayElement = 0;
 		depthWrite.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
@@ -207,10 +213,9 @@ void DescriptorPoolManager::createInputDescriptorSets(DeviceManager *mainDevice,
 	}
 }
 
-void DescriptorPoolManager::createDescriptorSetLayout(DeviceManager *mainDevice, VkDescriptorSetLayout* descriptorSetLayout, VkDescriptorSetLayout* samplerSetLayout,
-													VkDescriptorSetLayout* inputSetLayout) {
+void DescriptorPoolManager::createDescriptorSetLayout() {
 	// UNIFORM VALUES DESCRIPTOR SET LAYOUT
-	// UboViewProjection Binding Info
+// UboViewProjection Binding Info
 	VkDescriptorSetLayoutBinding vpLayoutBinding = {};
 	vpLayoutBinding.binding = 0;													// Binding point in shader (designated by binding number in shader)
 	vpLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;				// Type of descriptor (uniform, dynamic uniform, texture, etc)
@@ -237,10 +242,14 @@ void DescriptorPoolManager::createDescriptorSetLayout(DeviceManager *mainDevice,
 	layoutCreateInfo.pBindings = layoutBindings.data();								// Array of binding infos
 
 	// Create Descriptor Set Layout
-	VkResult result = vkCreateDescriptorSetLayout(mainDevice->getLogicalDevice(), &layoutCreateInfo, nullptr, descriptorSetLayout);
+	VkResult result = vkCreateDescriptorSetLayout(mainDevice->getLogicalDevice(), &layoutCreateInfo, nullptr, &descriptorSetLayout);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Descriptor Set Layout!");
 	}
+}
+
+void DescriptorPoolManager::createSamplerDescriptorSetLayout() {
+
 
 	// CREATE TEXTURE SAMPLER DESCRIPTOR SET LAYOUR
 	VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
@@ -257,10 +266,14 @@ void DescriptorPoolManager::createDescriptorSetLayout(DeviceManager *mainDevice,
 	textureLayoutCreateInfo.pBindings = &samplerLayoutBinding;							// Array of binding infos
 
 	// Create Descriptor Set Layout with given bindings for texture
-	result = vkCreateDescriptorSetLayout(mainDevice->getLogicalDevice(), &textureLayoutCreateInfo, nullptr, samplerSetLayout);
+	VkResult result = vkCreateDescriptorSetLayout(mainDevice->getLogicalDevice(), &textureLayoutCreateInfo, nullptr, &samplerSetLayout);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Sampler Descriptor Set Layout!");
 	}
+
+}
+
+void DescriptorPoolManager::createInputDescriptorSetLayout() {
 
 	// CREATE INPUT ATTACHMENT IMAGE DESCRIPTOR SET LAYOUT
 	// Colour Input Binding
@@ -287,13 +300,17 @@ void DescriptorPoolManager::createDescriptorSetLayout(DeviceManager *mainDevice,
 	inputLayoutCreateInfo.pBindings = inputBindings.data();
 
 	// Create Descriptor Set Layout
-	result = vkCreateDescriptorSetLayout(mainDevice->getLogicalDevice(), &inputLayoutCreateInfo, nullptr, inputSetLayout);
+	VkResult result = vkCreateDescriptorSetLayout(mainDevice->getLogicalDevice(), &inputLayoutCreateInfo, nullptr, &inputSetLayout);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create Input Descriptor Set Layout!");
 	}
 }
 
-void DescriptorPoolManager::destroyPool(DeviceManager *mainDevice, VkDescriptorPool* descriptorPool, VkDescriptorSetLayout* descriptorSetLayout) {
+void DescriptorPoolManager::destroyPool(DeviceManager* mainDevice, VkDescriptorPool* descriptorPool, VkDescriptorSetLayout* descriptorSetLayout) {
 	vkDestroyDescriptorPool(mainDevice->getLogicalDevice(), *descriptorPool, nullptr);
 	vkDestroyDescriptorSetLayout(mainDevice->getLogicalDevice(), *descriptorSetLayout, nullptr);
+}
+
+DescriptorPoolManager::~DescriptorPoolManager()
+{
 }

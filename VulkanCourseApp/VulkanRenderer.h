@@ -84,20 +84,22 @@ private:
 	VkSampler textureSampler;
 
 	// - Descriptors
-	VkDescriptorSetLayout descriptorSetLayout;
+	//VkDescriptorSetLayout descriptorSetLayout;
 	// Move to SamplerManager?
-	VkDescriptorSetLayout samplerSetLayout;
-	VkDescriptorSetLayout inputSetLayout;
+	//VkDescriptorSetLayout samplerSetLayout;
+	//VkDescriptorSetLayout inputSetLayout;
 	VkPushConstantRange pushConstantRange;
 
-	VkDescriptorPool descriptorPool;
+	DescriptorPoolManager descriptorPoolManager;
+
+	//VkDescriptorPool descriptorPool;
 	// Move to SamplerManager?
-	VkDescriptorPool samplerDescriptorPool;
-	VkDescriptorPool inputDescriptorPool;
-	std::vector<VkDescriptorSet> descriptorSets;
+	//VkDescriptorPool samplerDescriptorPool;
+	//VkDescriptorPool inputDescriptorPool;
+	//std::vector<VkDescriptorSet> descriptorSets;
 	// Move to SamplerManager?
-	std::vector<VkDescriptorSet> samplerDescriptorSets;
-	std::vector<VkDescriptorSet> inputDescriptorSets;
+	//std::vector<VkDescriptorSet> samplerDescriptorSets;
+	//std::vector<VkDescriptorSet> inputDescriptorSets;
 
 	std::vector<VkBuffer> vpUniformBuffer;
 	std::vector<VkDeviceMemory> vpUniformBufferMemory;

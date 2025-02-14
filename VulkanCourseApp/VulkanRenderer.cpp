@@ -18,11 +18,15 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 			&swapchain, &swapChainImageFormat, &swapChainExtent,
 			&swapChainImages);
 		createRenderPass();
-		DescriptorPoolManager::createDescriptorSetLayout(mainDevice, &descriptorSetLayout, &samplerSetLayout, &inputSetLayout);
+		descriptorPoolManager = DescriptorPoolManager::DescriptorPoolManager(mainDevice);
+		descriptorPoolManager.createDescriptorSetLayout();
+		descriptorPoolManager.createSamplerDescriptorSetLayout();
+		descriptorPoolManager.createInputDescriptorSetLayout();
 		createPushConstantRange();
-		PipelineManager::createGraphicsPipeline(mainDevice, &swapChainExtent, &descriptorSetLayout, &samplerSetLayout,
+		PipelineManager::createGraphicsPipeline(mainDevice, &swapChainExtent, descriptorPoolManager.getDescriptorSetLayout(),
+			descriptorPoolManager.getSamplerSetLayout(),
 			&pushConstantRange, &renderPass, &graphicsPipeline, &pipelineLayout,
-			&secondPipeline, &secondPipelineLayout, &inputSetLayout);
+			&secondPipeline, &secondPipelineLayout, descriptorPoolManager.getInputSetLayout());
 		createColourBufferImage();
 		createDepthBufferImage();
 		createFramebuffers();
@@ -34,14 +38,10 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		createTextureSampler();
 		//allocateDynamicBufferTransferSpace();
 		createUniformBuffers();
-		DescriptorPoolManager::createDescriptorPool(mainDevice, &vpUniformBuffer, &swapChainImages,
-			&descriptorPool, &samplerDescriptorPool, &inputDescriptorPool,
+		descriptorPoolManager.createDescriptorPool(&vpUniformBuffer, &swapChainImages,
 			&colourBufferImageView, &depthBufferImageView);
-		DescriptorPoolManager::createDescriptorSets(mainDevice, &vpUniformBuffer, &descriptorPool, &swapChainImages,
-			&descriptorSets, &descriptorSetLayout);
-		DescriptorPoolManager::createInputDescriptorSets(mainDevice, &swapChainImages, &inputDescriptorPool,
-			&inputDescriptorSets, &inputSetLayout, &colourBufferImageView,
-			&depthBufferImageView);
+		descriptorPoolManager.createDescriptorSets(&vpUniformBuffer, &swapChainImages);
+		descriptorPoolManager.createInputDescriptorSets(&swapChainImages, &colourBufferImageView, &depthBufferImageView);
 		createSynchronisation();
 
 		//int firstTexture = createTexture("giraffe.jpg");
@@ -93,8 +93,8 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		textureManager = TextureManager::TextureManager(mainDevice, &commandPoolManager);
 		// Create our default "no texture" texture
 		textureManager.createTexture("plain.png",
-			&samplerDescriptorPool, &samplerSetLayout,
-			&samplerDescriptorSets, &textureSampler);
+			descriptorPoolManager.getSamplerDescriptorPool(), descriptorPoolManager.getSamplerSetLayout(),
+			descriptorPoolManager.getSamplerDescriptorSets(), &textureSampler);
 	}
 	catch (const std::runtime_error& e) {
 		printf("ERROR: %s\n", e.what());
@@ -123,8 +123,8 @@ void VulkanRenderer::draw() {
 
 	commandBufferManager.recordCommands(imageIndex, &renderPass, &swapChainExtent, &swapChainFramebuffers,
 		&graphicsPipeline, &pipelineLayout, &modelList,
-		&descriptorSets, &samplerDescriptorSets,
-		&secondPipeline, &secondPipelineLayout, &inputDescriptorSets);
+		descriptorPoolManager.getDescriptorSets(), descriptorPoolManager.getSamplerDescriptorSets(),
+		&secondPipeline, &secondPipelineLayout, descriptorPoolManager.getInputDescriptorSets());
 
 	updateUniformBuffers(imageIndex);
 
@@ -183,9 +183,9 @@ void VulkanRenderer::cleanup() {
 		modelList[i].destroyMeshModel();
 	}
 
-	DescriptorPoolManager::destroyPool(mainDevice, &inputDescriptorPool, &inputSetLayout);
+	descriptorPoolManager.destroyInputPool();
 
-	DescriptorPoolManager::destroyPool(mainDevice, &samplerDescriptorPool, &samplerSetLayout);
+	descriptorPoolManager.destroySamplerPool();
 
 	vkDestroySampler(mainDevice->getLogicalDevice(), textureSampler, nullptr);
 
@@ -203,7 +203,7 @@ void VulkanRenderer::cleanup() {
 		vkFreeMemory(mainDevice->getLogicalDevice(), colourBufferImageMemory[i], nullptr);
 	}
 
-	DescriptorPoolManager::destroyPool(mainDevice, &descriptorPool, &descriptorSetLayout);
+	descriptorPoolManager.destroyDescriptorPool();
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		vkDestroyBuffer(mainDevice->getLogicalDevice(), vpUniformBuffer[i], nullptr);
 		vkFreeMemory(mainDevice->getLogicalDevice(), vpUniformBufferMemory[i], nullptr);
@@ -752,8 +752,8 @@ int VulkanRenderer::createMeshModel(std::string modelFile) {
 		else {
 			// Otherwise, create texture and set value to index of new texture
 			matToTex[i] = textureManager.createTexture(textureNames[i],
-				&samplerDescriptorPool, &samplerSetLayout,
-				&samplerDescriptorSets, &textureSampler);
+				descriptorPoolManager.getSamplerDescriptorPool(), descriptorPoolManager.getSamplerSetLayout(),
+				descriptorPoolManager.getSamplerDescriptorSets(), &textureSampler);
 		}
 	}
 
