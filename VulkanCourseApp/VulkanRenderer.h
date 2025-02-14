@@ -32,6 +32,7 @@
 #include "QueueFamilyManager.h"
 #include "SwapChainManager.h"
 #include "DeviceManager.h"
+#include "ModelManager.h"
 
 #include "Utilities.h"
 
@@ -57,7 +58,7 @@ private:
 	int currentFrame = 0;
 
 	// Scene Objects
-	std::vector<MeshModel> modelList;
+	//std::vector<MeshModel> modelList;
 
 	// Scene Settings
 	struct UboViewProjection uboViewProjection;
@@ -113,6 +114,7 @@ private:
 
 	// - Assets
 	TextureManager textureManager;
+	ModelManager modelManager;
 
 	// - Pipeline
 	VkPipeline graphicsPipeline;
