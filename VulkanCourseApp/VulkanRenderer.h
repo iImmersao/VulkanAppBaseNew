@@ -58,7 +58,7 @@ private:
 	int currentFrame = 0;
 
 	// Scene Objects
-	//std::vector<MeshModel> modelList;
+	ModelManager modelManager;
 
 	// Scene Settings
 	struct UboViewProjection uboViewProjection;
@@ -85,22 +85,9 @@ private:
 	VkSampler textureSampler;
 
 	// - Descriptors
-	//VkDescriptorSetLayout descriptorSetLayout;
-	// Move to SamplerManager?
-	//VkDescriptorSetLayout samplerSetLayout;
-	//VkDescriptorSetLayout inputSetLayout;
-	VkPushConstantRange pushConstantRange;
-
 	DescriptorPoolManager descriptorPoolManager;
 
-	//VkDescriptorPool descriptorPool;
-	// Move to SamplerManager?
-	//VkDescriptorPool samplerDescriptorPool;
-	//VkDescriptorPool inputDescriptorPool;
-	//std::vector<VkDescriptorSet> descriptorSets;
-	// Move to SamplerManager?
-	//std::vector<VkDescriptorSet> samplerDescriptorSets;
-	//std::vector<VkDescriptorSet> inputDescriptorSets;
+	VkPushConstantRange pushConstantRange;
 
 	std::vector<VkBuffer> vpUniformBuffer;
 	std::vector<VkDeviceMemory> vpUniformBufferMemory;
@@ -114,7 +101,6 @@ private:
 
 	// - Assets
 	TextureManager textureManager;
-	ModelManager modelManager;
 
 	// - Pipeline
 	VkPipeline graphicsPipeline;
@@ -126,7 +112,6 @@ private:
 	VkRenderPass renderPass;
 
 	// - Pools
-	//VkCommandPool graphicsCommandPool;
 	CommandPoolManager commandPoolManager;
 
 	// - Utility
