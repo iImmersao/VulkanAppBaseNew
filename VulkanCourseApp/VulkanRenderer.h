@@ -27,6 +27,7 @@
 #include "DescriptorPoolManager.h"
 #include "CommandBufferManager.h"
 #include "CommandPoolManager.h"
+#include "ImageManager.h"
 #include "TextureManager.h"
 #include "QueueFamilyManager.h"
 #include "SwapChainManager.h"
@@ -79,18 +80,22 @@ private:
 	std::vector <VkDeviceMemory> depthBufferImageMemory;
 	std::vector <VkImageView> depthBufferImageView;
 
+	// Move to SamplerManager?
 	VkSampler textureSampler;
 
 	// - Descriptors
 	VkDescriptorSetLayout descriptorSetLayout;
+	// Move to SamplerManager?
 	VkDescriptorSetLayout samplerSetLayout;
 	VkDescriptorSetLayout inputSetLayout;
 	VkPushConstantRange pushConstantRange;
 
 	VkDescriptorPool descriptorPool;
+	// Move to SamplerManager?
 	VkDescriptorPool samplerDescriptorPool;
 	VkDescriptorPool inputDescriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
+	// Move to SamplerManager?
 	std::vector<VkDescriptorSet> samplerDescriptorSets;
 	std::vector<VkDescriptorSet> inputDescriptorSets;
 
@@ -105,9 +110,7 @@ private:
 	//Model* modelTransferSpace;
 
 	// - Assets
-	std::vector<VkImage> textureImages;
-	std::vector<VkDeviceMemory> textureImageMemory;
-	std::vector<VkImageView> textureImageViews;
+	TextureManager textureManager;
 
 	// - Pipeline
 	VkPipeline graphicsPipeline;

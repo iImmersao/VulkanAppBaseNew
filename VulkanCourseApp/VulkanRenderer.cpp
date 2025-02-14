@@ -90,9 +90,9 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		meshList.push_back(secondMesh);
 		*/
 
+		textureManager = TextureManager::TextureManager(mainDevice, &commandPoolManager);
 		// Create our default "no texture" texture
-		TextureManager::createTexture(mainDevice, "plain.png", commandPoolManager.getGraphicsCommandPool(),
-			&textureImages, &textureImageMemory, &textureImageViews,
+		textureManager.createTexture("plain.png",
 			&samplerDescriptorPool, &samplerSetLayout,
 			&samplerDescriptorSets, &textureSampler);
 	}
@@ -189,11 +189,7 @@ void VulkanRenderer::cleanup() {
 
 	vkDestroySampler(mainDevice->getLogicalDevice(), textureSampler, nullptr);
 
-	for (size_t i = 0; i < textureImages.size(); i++) {
-		vkDestroyImageView(mainDevice->getLogicalDevice(), textureImageViews[i], nullptr);
-		vkDestroyImage(mainDevice->getLogicalDevice(), textureImages[i], nullptr);
-		vkFreeMemory(mainDevice->getLogicalDevice(), textureImageMemory[i], nullptr);
-	}
+	textureManager.destroy();
 
 	for (size_t i = 0; i < depthBufferImage.size(); i++) {
 		vkDestroyImageView(mainDevice->getLogicalDevice(), depthBufferImageView[i], nullptr);
@@ -522,11 +518,11 @@ void VulkanRenderer::createColourBufferImage() {
 
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		// Create Colour Buffer Image
-		colourBufferImage[i] = TextureManager::createImage(mainDevice, swapChainExtent.width, swapChainExtent.height, colourFormat, VK_IMAGE_TILING_OPTIMAL,
+		colourBufferImage[i] = ImageManager::createImage(mainDevice, swapChainExtent.width, swapChainExtent.height, colourFormat, VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &colourBufferImageMemory[i]);
 
 		// Create Colour Buffer Image View
-		colourBufferImageView[i] = TextureManager::createImageView(mainDevice, colourBufferImage[i], colourFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+		colourBufferImageView[i] = ImageManager::createImageView(mainDevice, colourBufferImage[i], colourFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 }
 
@@ -545,11 +541,11 @@ void VulkanRenderer::createDepthBufferImage() {
 
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		// Create Depth Buffer Image
-		depthBufferImage[i] = TextureManager::createImage(mainDevice, swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
+		depthBufferImage[i] = ImageManager::createImage(mainDevice, swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depthBufferImageMemory[i]);
 
 		// Create Depth Buffer Image View
-		depthBufferImageView[i] = TextureManager::createImageView(mainDevice, depthBufferImage[i], depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+		depthBufferImageView[i] = ImageManager::createImageView(mainDevice, depthBufferImage[i], depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 	}
 }
 
@@ -755,8 +751,7 @@ int VulkanRenderer::createMeshModel(std::string modelFile) {
 		}
 		else {
 			// Otherwise, create texture and set value to index of new texture
-			matToTex[i] = TextureManager::createTexture(mainDevice, textureNames[i], commandPoolManager.getGraphicsCommandPool(),
-				&textureImages, &textureImageMemory, &textureImageViews,
+			matToTex[i] = textureManager.createTexture(textureNames[i],
 				&samplerDescriptorPool, &samplerSetLayout,
 				&samplerDescriptorSets, &textureSampler);
 		}

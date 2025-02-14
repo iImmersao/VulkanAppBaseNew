@@ -80,7 +80,7 @@ void SwapChainManager::createSwapChain(DeviceManager *mainDevice, GLFWwindow* wi
 		// Store image handle
 		SwapchainImage swapChainImage = {};
 		swapChainImage.image = image;
-		swapChainImage.imageView = TextureManager::createImageView(mainDevice, image, *swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+		swapChainImage.imageView = ImageManager::createImageView(mainDevice, image, *swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 
 		// Add to swapchain image list
 		swapChainImages->push_back(swapChainImage);

@@ -8,6 +8,7 @@
 
 //#include "Utilities.h"
 //#include "QueueFamilyManager.h"
+#include "ImageManager.h"
 #include "TextureManager.h"
 #include "DeviceManager.h"
 
