@@ -294,58 +294,6 @@ void VulkanRenderer::createInstance() {
 	}
 }
 
-/*
-void VulkanRenderer::createLogicalDevice() {
-	// Get the queue family indices for the chosen Physical Device
-	VkPhysicalDevice physDev = mainDevice.getPhysicalDevice();
-	QueueFamilyIndices indices = QueueFamilyManager::getQueueFamilies(&physDev, &surface);
-
-	// Vector for queue creation information, and set for family indices
-	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<int> queueFamilyIndices = { indices.graphicsFamily, indices.presentationFamily };   // This makes sure that we only have one, if both families are the same
-
-	// Queues the logical device needs to create and info to do so
-	for (int queueFamilyIndex : queueFamilyIndices) {
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.queueFamilyIndex = queueFamilyIndex;                                     // Index of the family to create a queue from
-		queueCreateInfo.queueCount = 1;                                                          // Number of queues to create
-		float priority = 1.0f;
-		queueCreateInfo.pQueuePriorities = &priority;                                            // Vulkan needs to know how to handle multiple queues, so decide priority (1 is highest)
-
-		queueCreateInfos.push_back(queueCreateInfo);
-	}
-
-	// Information to create logical device (sometimes called "device")
-	VkDeviceCreateInfo deviceCreateInfo = {};
-	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());      // Number of Queue Create Infos
-	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();                                // List of queue create infos so device can create required queues
-	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());     // Number of enabled logical device extensions
-	deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();                          // List of enabled logical device extensions
-	// deviceCreateInfo.enabledLayerCount = 0;                                                   // Deprecated from v1.1 onwards
-
-	// Physical Device Features the Logical Device will be using (none for now, but need to pass the structure)
-	VkPhysicalDeviceFeatures deviceFeatures = {};
-	deviceFeatures.samplerAnisotropy = VK_TRUE;				// Enable Anisotropy
-
-	deviceCreateInfo.pEnabledFeatures = &deviceFeatures;	// Physical Device features the Logical Device will use
-
-	// Create the logical device for the given physical device
-	VkDevice logDev = mainDevice.getLogicalDevice();
-	VkResult result = vkCreateDevice(mainDevice.getPhysicalDevice(), &deviceCreateInfo, nullptr, &logDev);
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create a Logical Device!");
-	}
-
-	// Queues are created at the same time as the device...
-	// So we want handle to queues
-	// From given logical device of given Queue Family of given Queue Index (0, since only one queue), place reference in given VkQueue
-	vkGetDeviceQueue(mainDevice.getLogicalDevice(), indices.graphicsFamily, 0, &graphicsQueue);
-	vkGetDeviceQueue(mainDevice.getLogicalDevice(), indices.presentationFamily, 0, &presentationQueue);
-}
-*/
-
 void VulkanRenderer::createRenderPass() {
 	// Array of our subpasses
 	std::array<VkSubpassDescription, 2> subpasses {};
@@ -574,22 +522,6 @@ void VulkanRenderer::createFramebuffers() {
 		if (result != VK_SUCCESS) {
 			throw std::runtime_error("Failed to create a Framebuffer!");
 		}
-	}
-}
-
-void VulkanRenderer::createCommandPool() {
-	// Get indices of queue families from device
-	QueueFamilyIndices queueFamilyIndices = mainDevice->getQueueFamilies(mainDevice->getPhysicalDevice());
-
-	VkCommandPoolCreateInfo poolInfo = {};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;	// Queue Family type that buffers from this command pool will use
-
-	// Create a Graphics Queue Family Command Pool
-	VkResult result = vkCreateCommandPool(mainDevice->getLogicalDevice(), &poolInfo, nullptr, commandPoolManager.getGraphicsCommandPool());
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("Failed to create a Command Pool!");
 	}
 }
 
