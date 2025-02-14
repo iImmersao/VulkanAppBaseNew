@@ -10,6 +10,7 @@
 
 #include "DeviceManager.h"
 #include "CommandPoolManager.h"
+#include "DescriptorPoolManager.h"
 #include "ImageManager.h"
 //#include "Utilities.h"
 
@@ -17,14 +18,11 @@ class TextureManager
 {
 public:
 	TextureManager();
-	TextureManager(DeviceManager* mainDevice, CommandPoolManager* commandPoolManager);
+	TextureManager(DeviceManager* mainDevice, CommandPoolManager* commandPoolManager, DescriptorPoolManager* descriptorPoolManager);
 
 	int createTextureImage(std::string fileName, std::vector<VkImage> *textureImages, std::vector<VkDeviceMemory> *textureImageMemory);
-	int createTexture(std::string fileName,
-		VkDescriptorPool* samplerDescriptorPool, VkDescriptorSetLayout* samplerSetLayout,
-		std::vector<VkDescriptorSet>* samplerDescriptorSets, VkSampler* textureSampler);
-	int createTextureDescriptor( VkImageView textureImage, VkDescriptorPool *samplerDescriptorPool, VkDescriptorSetLayout *samplerSetLayout,
-		std::vector<VkDescriptorSet> *samplerDescriptorSets, VkSampler *textureSampler);
+	int createTexture(std::string fileName, VkSampler* textureSampler);
+	int createTextureDescriptor( VkImageView textureImage, VkSampler *textureSampler);
 
 	static stbi_uc* loadTextureFile(std::string fileName, int* width, int* height, VkDeviceSize* imageSize);
 
@@ -35,6 +33,7 @@ public:
 private:
 	DeviceManager* mainDevice;
 	CommandPoolManager* commandPoolManager;
+	DescriptorPoolManager* descriptorPoolManager;
 
 	std::vector<VkImage> textureImages;
 	std::vector<VkDeviceMemory> textureImageMemory;

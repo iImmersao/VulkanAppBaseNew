@@ -90,11 +90,9 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		meshList.push_back(secondMesh);
 		*/
 
-		textureManager = TextureManager::TextureManager(mainDevice, &commandPoolManager);
+		textureManager = TextureManager::TextureManager(mainDevice, &commandPoolManager, &descriptorPoolManager);
 		// Create our default "no texture" texture
-		textureManager.createTexture("plain.png",
-			descriptorPoolManager.getSamplerDescriptorPool(), descriptorPoolManager.getSamplerSetLayout(),
-			descriptorPoolManager.getSamplerDescriptorSets(), &textureSampler);
+		textureManager.createTexture("plain.png", &textureSampler);
 	}
 	catch (const std::runtime_error& e) {
 		printf("ERROR: %s\n", e.what());
@@ -751,9 +749,7 @@ int VulkanRenderer::createMeshModel(std::string modelFile) {
 		}
 		else {
 			// Otherwise, create texture and set value to index of new texture
-			matToTex[i] = textureManager.createTexture(textureNames[i],
-				descriptorPoolManager.getSamplerDescriptorPool(), descriptorPoolManager.getSamplerSetLayout(),
-				descriptorPoolManager.getSamplerDescriptorSets(), &textureSampler);
+			matToTex[i] = textureManager.createTexture(textureNames[i], &textureSampler);
 		}
 	}
 

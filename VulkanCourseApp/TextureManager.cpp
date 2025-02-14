@@ -6,10 +6,11 @@ TextureManager::TextureManager()
 	commandPoolManager = NULL;
 }
 
-TextureManager::TextureManager(DeviceManager* mainDevice, CommandPoolManager* commandPoolManager)
+TextureManager::TextureManager(DeviceManager* mainDevice, CommandPoolManager* commandPoolManager, DescriptorPoolManager* descriptorPoolManager)
 {
 	this->mainDevice = mainDevice;
 	this->commandPoolManager = commandPoolManager;
+	this->descriptorPoolManager = descriptorPoolManager;
 }
 
 int TextureManager::createTextureImage(std::string fileName, std::vector<VkImage>* textureImages, std::vector<VkDeviceMemory>* textureImageMemory) {
@@ -63,9 +64,7 @@ int TextureManager::createTextureImage(std::string fileName, std::vector<VkImage
 	return textureImages->size() - 1;
 }
 
-int TextureManager::createTexture(std::string fileName,
-								VkDescriptorPool* samplerDescriptorPool, VkDescriptorSetLayout* samplerSetLayout,
-								std::vector<VkDescriptorSet>* samplerDescriptorSets, VkSampler* textureSampler) {
+int TextureManager::createTexture(std::string fileName, VkSampler* textureSampler) {
 	// Create Texture Image and get its location in array
 	int textureImageLoc = createTextureImage(fileName, &textureImages, &textureImageMemory);
 
@@ -74,22 +73,21 @@ int TextureManager::createTexture(std::string fileName,
 	textureImageViews.push_back(imageView);
 
 	// Create Texture Descriptor
-	int descriptorLoc = createTextureDescriptor(imageView, samplerDescriptorPool, samplerSetLayout, samplerDescriptorSets, textureSampler);
+	int descriptorLoc = createTextureDescriptor(imageView, textureSampler);
 
 	// Return location of set with texture
 	return descriptorLoc;
 }
 
-int TextureManager::createTextureDescriptor(VkImageView textureImage, VkDescriptorPool* samplerDescriptorPool, VkDescriptorSetLayout* samplerSetLayout,
-											std::vector<VkDescriptorSet>* samplerDescriptorSets, VkSampler* textureSampler) {
+int TextureManager::createTextureDescriptor(VkImageView textureImage, VkSampler* textureSampler) {
 	VkDescriptorSet descriptorSet;
 
 	// Descriptor Set Allocation Info
 	VkDescriptorSetAllocateInfo setAllocInfo = {};
 	setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	setAllocInfo.descriptorPool = *samplerDescriptorPool;
+	setAllocInfo.descriptorPool = *descriptorPoolManager->getSamplerDescriptorPool();
 	setAllocInfo.descriptorSetCount = 1;
-	setAllocInfo.pSetLayouts = samplerSetLayout;
+	setAllocInfo.pSetLayouts = descriptorPoolManager->getSamplerSetLayout();
 
 	// Allocate Descriptor Sets
 	VkResult result = vkAllocateDescriptorSets(mainDevice->getLogicalDevice(), &setAllocInfo, &descriptorSet);
@@ -117,10 +115,10 @@ int TextureManager::createTextureDescriptor(VkImageView textureImage, VkDescript
 	vkUpdateDescriptorSets(mainDevice->getLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
 
 	// Add descriptor set to list
-	samplerDescriptorSets->push_back(descriptorSet);
+	descriptorPoolManager->getSamplerDescriptorSets()->push_back(descriptorSet);
 
 	// Return descriptor set location
-	return samplerDescriptorSets->size() - 1;
+	return descriptorPoolManager->getSamplerDescriptorSets()->size() - 1;
 }
 
 stbi_uc* TextureManager::loadTextureFile(std::string fileName, int* width, int* height, VkDeviceSize* imageSize) {
