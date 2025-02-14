@@ -12,20 +12,86 @@
 class DescriptorPoolManager
 {
 public:
-	static void createDescriptorPool(DeviceManager *mainDevice, std::vector<VkBuffer> *vpUniformBuffer, std::vector<SwapchainImage> *swapChainImages,
-		VkDescriptorPool *descriptorPool, VkDescriptorPool *samplerDescriptorPool, VkDescriptorPool *inputDescriptorPool,
+	DescriptorPoolManager();
+
+	DescriptorPoolManager(DeviceManager* mainDevice);
+
+	void createDescriptorPool(std::vector<VkBuffer> *vpUniformBuffer, std::vector<SwapchainImage> *swapChainImages,
 		std::vector <VkImageView> *colourBufferImageView, std::vector <VkImageView> *depthBufferImageView);
 
-	static void createDescriptorSets(DeviceManager *mainDevice, std::vector<VkBuffer>* vpUniformBuffer, VkDescriptorPool* descriptorPool, std::vector<SwapchainImage>* swapChainImages,
-		std::vector<VkDescriptorSet> *descriptorSets, VkDescriptorSetLayout *descriptorSetLayout);
+	void createDescriptorSets(std::vector<VkBuffer>* vpUniformBuffer, std::vector<SwapchainImage>* swapChainImages);
 
-	static void createInputDescriptorSets(DeviceManager *mainDevice, std::vector<SwapchainImage>* swapChainImages, VkDescriptorPool* inputDescriptorPool,
-		std::vector<VkDescriptorSet>* inputDescriptorSets, VkDescriptorSetLayout* inputSetLayout, std::vector <VkImageView> *colourBufferImageView,
+	void createInputDescriptorSets(std::vector<SwapchainImage>* swapChainImages, std::vector <VkImageView> *colourBufferImageView,
 		std::vector <VkImageView> *depthBufferImageView);
 
-	static void createDescriptorSetLayout(DeviceManager *mainDevice, VkDescriptorSetLayout* descriptorSetLayout, VkDescriptorSetLayout* samplerSetLayout,
-		VkDescriptorSetLayout* inputSetLayout);
+	void createDescriptorSetLayout();
+
+	void createSamplerDescriptorSetLayout();
+
+	void createInputDescriptorSetLayout();
 
 	static void destroyPool(DeviceManager *mainDevice, VkDescriptorPool* descriptorPool, VkDescriptorSetLayout* descriptorSetLayout);
+
+	void destroyDescriptorPool() {
+		DescriptorPoolManager::destroyPool(mainDevice, &descriptorPool, &descriptorSetLayout);
+	}
+	void destroySamplerPool() {
+		DescriptorPoolManager::destroyPool(mainDevice, &samplerDescriptorPool, &samplerSetLayout);
+	}
+	void destroyInputPool() {
+		DescriptorPoolManager::destroyPool(mainDevice, &inputDescriptorPool, &inputSetLayout);
+	}
+
+	VkDescriptorPool* getDescriptorPool() {
+		return &descriptorPool;
+	}
+
+	VkDescriptorPool* getSamplerDescriptorPool() {
+		return &samplerDescriptorPool;
+	}
+
+	VkDescriptorPool* getInputDescriptorPool() {
+		return &inputDescriptorPool;
+	}
+
+	VkDescriptorSetLayout* getDescriptorSetLayout() {
+		return &descriptorSetLayout;
+	}
+
+	VkDescriptorSetLayout* getSamplerSetLayout() {
+		return &samplerSetLayout;
+	}
+
+	VkDescriptorSetLayout* getInputSetLayout() {
+		return &inputSetLayout;
+	}
+
+	std::vector<VkDescriptorSet>* getDescriptorSets() {
+		return &descriptorSets;
+	}
+
+	std::vector<VkDescriptorSet>* getSamplerDescriptorSets() {
+		return &samplerDescriptorSets;
+	}
+
+	std::vector<VkDescriptorSet>* getInputDescriptorSets() {
+		return &inputDescriptorSets;
+	}
+
+	~DescriptorPoolManager();
+private:
+	DeviceManager* mainDevice;
+
+	VkDescriptorPool descriptorPool;
+	VkDescriptorPool samplerDescriptorPool;
+	VkDescriptorPool inputDescriptorPool;
+
+	std::vector<VkDescriptorSet> descriptorSets;
+	std::vector<VkDescriptorSet> samplerDescriptorSets;
+	std::vector<VkDescriptorSet> inputDescriptorSets;
+
+	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorSetLayout samplerSetLayout;
+	VkDescriptorSetLayout inputSetLayout;
 };
 

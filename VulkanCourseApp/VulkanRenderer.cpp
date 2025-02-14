@@ -18,28 +18,30 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 			&swapchain, &swapChainImageFormat, &swapChainExtent,
 			&swapChainImages);
 		createRenderPass();
-		DescriptorPoolManager::createDescriptorSetLayout(mainDevice, &descriptorSetLayout, &samplerSetLayout, &inputSetLayout);
+		descriptorPoolManager = DescriptorPoolManager::DescriptorPoolManager(mainDevice);
+		descriptorPoolManager.createDescriptorSetLayout();
+		descriptorPoolManager.createSamplerDescriptorSetLayout();
+		descriptorPoolManager.createInputDescriptorSetLayout();
 		createPushConstantRange();
-		PipelineManager::createGraphicsPipeline(mainDevice, &swapChainExtent, &descriptorSetLayout, &samplerSetLayout,
+		PipelineManager::createGraphicsPipeline(mainDevice, &swapChainExtent, descriptorPoolManager.getDescriptorSetLayout(),
+			descriptorPoolManager.getSamplerSetLayout(),
 			&pushConstantRange, &renderPass, &graphicsPipeline, &pipelineLayout,
-			&secondPipeline, &secondPipelineLayout, &inputSetLayout);
+			&secondPipeline, &secondPipelineLayout, descriptorPoolManager.getInputSetLayout());
 		createColourBufferImage();
 		createDepthBufferImage();
 		createFramebuffers();
-		createCommandPool();
+		commandPoolManager = CommandPoolManager::CommandPoolManager(mainDevice);
+		commandPoolManager.createCommandPool();
 
-		CommandBufferManager::createCommandBuffers(mainDevice, &graphicsCommandPool, &commandBuffers, &swapChainFramebuffers);
+		commandBufferManager = CommandBufferManager::CommandBufferManager(&commandPoolManager);
+		commandBufferManager.createCommandBuffers(mainDevice, &swapChainFramebuffers);
 		createTextureSampler();
 		//allocateDynamicBufferTransferSpace();
 		createUniformBuffers();
-		DescriptorPoolManager::createDescriptorPool(mainDevice, &vpUniformBuffer, &swapChainImages,
-			&descriptorPool, &samplerDescriptorPool, &inputDescriptorPool,
+		descriptorPoolManager.createDescriptorPool(&vpUniformBuffer, &swapChainImages,
 			&colourBufferImageView, &depthBufferImageView);
-		DescriptorPoolManager::createDescriptorSets(mainDevice, &vpUniformBuffer, &descriptorPool, &swapChainImages,
-			&descriptorSets, &descriptorSetLayout);
-		DescriptorPoolManager::createInputDescriptorSets(mainDevice, &swapChainImages, &inputDescriptorPool,
-			&inputDescriptorSets, &inputSetLayout, &colourBufferImageView,
-			&depthBufferImageView);
+		descriptorPoolManager.createDescriptorSets(&vpUniformBuffer, &swapChainImages);
+		descriptorPoolManager.createInputDescriptorSets(&swapChainImages, &colourBufferImageView, &depthBufferImageView);
 		createSynchronisation();
 
 		//int firstTexture = createTexture("giraffe.jpg");
@@ -88,11 +90,11 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		meshList.push_back(secondMesh);
 		*/
 
+		textureManager = TextureManager::TextureManager(mainDevice, &commandPoolManager, &descriptorPoolManager);
 		// Create our default "no texture" texture
-		TextureManager::createTexture(mainDevice, "plain.png", &graphicsCommandPool,
-			&textureImages, &textureImageMemory, &textureImageViews,
-			&samplerDescriptorPool, &samplerSetLayout,
-			&samplerDescriptorSets, &textureSampler);
+		textureManager.createTexture("plain.png", &textureSampler);
+
+		modelManager = ModelManager::ModelManager(mainDevice, &commandPoolManager, &textureManager);
 	}
 	catch (const std::runtime_error& e) {
 		printf("ERROR: %s\n", e.what());
@@ -103,9 +105,9 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 }
 
 void VulkanRenderer::updateModel(int modelId, glm::mat4 newModel) {
-	if (modelId >= modelList.size()) return;
+	if (modelId >= modelManager.getModelListSize()) return;
 
-	modelList[modelId].setModel(newModel);
+	modelManager.setModel(modelId, newModel);
 }
 
 void VulkanRenderer::draw() {
@@ -119,10 +121,10 @@ void VulkanRenderer::draw() {
 	uint32_t imageIndex;
 	vkAcquireNextImageKHR(mainDevice->getLogicalDevice(), swapchain, std::numeric_limits<uint64_t>::max(), imageAvailable[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-	CommandBufferManager::recordCommands(imageIndex, &renderPass, &swapChainExtent, &swapChainFramebuffers,
-		&commandBuffers, &graphicsPipeline, &pipelineLayout, &modelList,
-		&descriptorSets, &samplerDescriptorSets,
-		&secondPipeline, &secondPipelineLayout, &inputDescriptorSets);
+	commandBufferManager.recordCommands(imageIndex, &renderPass, &swapChainExtent, &swapChainFramebuffers,
+		&graphicsPipeline, &pipelineLayout, modelManager.getModelList(),
+		descriptorPoolManager.getDescriptorSets(), descriptorPoolManager.getSamplerDescriptorSets(),
+		&secondPipeline, &secondPipelineLayout, descriptorPoolManager.getInputDescriptorSets());
 
 	updateUniformBuffers(imageIndex);
 
@@ -139,7 +141,9 @@ void VulkanRenderer::draw() {
 	};
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;								// Number of command buffersto submit
-	submitInfo.pCommandBuffers = &commandBuffers[imageIndex];		// Command buffer to submit
+	//submitInfo.pCommandBuffers = &commandBuffers[imageIndex];		// Command buffer to submit
+	std::vector<VkCommandBuffer> *commandBuffersPtr = commandBufferManager.getCommandBuffers();
+	submitInfo.pCommandBuffers = &(*commandBuffersPtr)[imageIndex];		// Command buffer to submit
 	submitInfo.signalSemaphoreCount = 1;							// Number of semaphores to signal
 	submitInfo.pSignalSemaphores = &renderFinished[currentFrame];	// Sempahores to signal when command buffer finishes
 
@@ -175,21 +179,17 @@ void VulkanRenderer::cleanup() {
 
 	//_aligned_free(modelTransferSpace);
 
-	for (size_t i = 0; i < modelList.size(); i++) {
-		modelList[i].destroyMeshModel();
+	for (size_t i = 0; i < modelManager.getModelListSize(); i++) {
+		modelManager.destroyModel(i);
 	}
 
-	DescriptorPoolManager::destroyPool(mainDevice, &inputDescriptorPool, &inputSetLayout);
+	descriptorPoolManager.destroyInputPool();
 
-	DescriptorPoolManager::destroyPool(mainDevice, &samplerDescriptorPool, &samplerSetLayout);
+	descriptorPoolManager.destroySamplerPool();
 
 	vkDestroySampler(mainDevice->getLogicalDevice(), textureSampler, nullptr);
 
-	for (size_t i = 0; i < textureImages.size(); i++) {
-		vkDestroyImageView(mainDevice->getLogicalDevice(), textureImageViews[i], nullptr);
-		vkDestroyImage(mainDevice->getLogicalDevice(), textureImages[i], nullptr);
-		vkFreeMemory(mainDevice->getLogicalDevice(), textureImageMemory[i], nullptr);
-	}
+	textureManager.destroy();
 
 	for (size_t i = 0; i < depthBufferImage.size(); i++) {
 		vkDestroyImageView(mainDevice->getLogicalDevice(), depthBufferImageView[i], nullptr);
@@ -203,7 +203,7 @@ void VulkanRenderer::cleanup() {
 		vkFreeMemory(mainDevice->getLogicalDevice(), colourBufferImageMemory[i], nullptr);
 	}
 
-	DescriptorPoolManager::destroyPool(mainDevice, &descriptorPool, &descriptorSetLayout);
+	descriptorPoolManager.destroyDescriptorPool();
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		vkDestroyBuffer(mainDevice->getLogicalDevice(), vpUniformBuffer[i], nullptr);
 		vkFreeMemory(mainDevice->getLogicalDevice(), vpUniformBufferMemory[i], nullptr);
@@ -218,7 +218,8 @@ void VulkanRenderer::cleanup() {
 		vkDestroySemaphore(mainDevice->getLogicalDevice(), imageAvailable[i], nullptr);
 		vkDestroyFence(mainDevice->getLogicalDevice(), drawFences[i], nullptr);
 	}
-	CommandBufferManager::destroy(mainDevice, &graphicsCommandPool);
+	commandPoolManager.destroy();
+	//CommandBufferManager::destroy(mainDevice, &graphicsCommandPool);
 	for (auto framebuffer : swapChainFramebuffers) {
 		vkDestroyFramebuffer(mainDevice->getLogicalDevice(), framebuffer, nullptr);
 	}
@@ -517,11 +518,11 @@ void VulkanRenderer::createColourBufferImage() {
 
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		// Create Colour Buffer Image
-		colourBufferImage[i] = TextureManager::createImage(mainDevice, swapChainExtent.width, swapChainExtent.height, colourFormat, VK_IMAGE_TILING_OPTIMAL,
+		colourBufferImage[i] = ImageManager::createImage(mainDevice, swapChainExtent.width, swapChainExtent.height, colourFormat, VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &colourBufferImageMemory[i]);
 
 		// Create Colour Buffer Image View
-		colourBufferImageView[i] = TextureManager::createImageView(mainDevice, colourBufferImage[i], colourFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+		colourBufferImageView[i] = ImageManager::createImageView(mainDevice, colourBufferImage[i], colourFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 }
 
@@ -540,11 +541,11 @@ void VulkanRenderer::createDepthBufferImage() {
 
 	for (size_t i = 0; i < swapChainImages.size(); i++) {
 		// Create Depth Buffer Image
-		depthBufferImage[i] = TextureManager::createImage(mainDevice, swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
+		depthBufferImage[i] = ImageManager::createImage(mainDevice, swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depthBufferImageMemory[i]);
 
 		// Create Depth Buffer Image View
-		depthBufferImageView[i] = TextureManager::createImageView(mainDevice, depthBufferImage[i], depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+		depthBufferImageView[i] = ImageManager::createImageView(mainDevice, depthBufferImage[i], depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 	}
 }
 
@@ -586,7 +587,7 @@ void VulkanRenderer::createCommandPool() {
 	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;	// Queue Family type that buffers from this command pool will use
 
 	// Create a Graphics Queue Family Command Pool
-	VkResult result = vkCreateCommandPool(mainDevice->getLogicalDevice(), &poolInfo, nullptr, &graphicsCommandPool);
+	VkResult result = vkCreateCommandPool(mainDevice->getLogicalDevice(), &poolInfo, nullptr, commandPoolManager.getGraphicsCommandPool());
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create a Command Pool!");
 	}
@@ -729,41 +730,5 @@ bool VulkanRenderer::checkInstanceExtensionSupport(std::vector<const char*>* che
 }
 
 int VulkanRenderer::createMeshModel(std::string modelFile) {
-	// Import mode "scene"
-	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(modelFile, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
-	if (!scene) {
-		throw std::runtime_error("Failed to load model! (" + modelFile + ")");
-	}
-
-	// Get vector of all materials with 1:1 ID placement
-	std::vector<std::string> textureNames = MeshModel::LoadMaterials(scene);
-
-	// Conversion from the materials list IDs to our Descriptor Array IDs
-	std::vector<int> matToTex(textureNames.size());
-
-	// Loop over textureNames and create textures for them
-	for (size_t i = 0; i < textureNames.size(); i++) {
-		// If material had no texture, set '0' to indicate no texture, texture 0 will be reserved for a default texture
-		if (textureNames[i].empty()) {
-			matToTex[i] = 0;
-		}
-		else {
-			// Otherwise, create texture and set value to index of new texture
-			matToTex[i] = TextureManager::createTexture(mainDevice, textureNames[i], &graphicsCommandPool,
-				&textureImages, &textureImageMemory, &textureImageViews,
-				&samplerDescriptorPool, &samplerSetLayout,
-				&samplerDescriptorSets, &textureSampler);
-		}
-	}
-
-	// Load in all our meshes
-	std::vector<Mesh> modelMeshes = MeshModel::LoadNode(mainDevice->getPhysicalDevice(), mainDevice->getLogicalDevice(), mainDevice->getGraphicsQueue(), graphicsCommandPool,
-		scene->mRootNode, scene, matToTex);
-
-	// Create mesh model and add to list
-	MeshModel meshModel = MeshModel(modelMeshes);
-	modelList.push_back(meshModel);
-
-	return modelList.size() - 1;
+	return modelManager.createMeshModel(modelFile, &textureSampler);
 }

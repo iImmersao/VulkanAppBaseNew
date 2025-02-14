@@ -9,24 +9,35 @@
 #include "stb_image.h"
 
 #include "DeviceManager.h"
+#include "CommandPoolManager.h"
+#include "DescriptorPoolManager.h"
+#include "ImageManager.h"
 //#include "Utilities.h"
 
 class TextureManager
 {
 public:
-	static VkImage createImage(DeviceManager *mainDevice, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags,
-		VkMemoryPropertyFlags propFlags, VkDeviceMemory* imageMemory);
-	static VkImageView createImageView(DeviceManager *mainDevice, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+	TextureManager();
+	TextureManager(DeviceManager* mainDevice, CommandPoolManager* commandPoolManager, DescriptorPoolManager* descriptorPoolManager);
 
-	static int createTextureImage(DeviceManager *mainDevice, std::string fileName, VkCommandPool *graphicsCommandPool,
-		std::vector<VkImage> *textureImages, std::vector<VkDeviceMemory> *textureImageMemory);
-	static int createTexture(DeviceManager *mainDevice, std::string fileName, VkCommandPool* graphicsCommandPool,
-		std::vector<VkImage>* textureImages, std::vector<VkDeviceMemory>* textureImageMemory, std::vector<VkImageView> *textureImageViews,
-		VkDescriptorPool* samplerDescriptorPool, VkDescriptorSetLayout* samplerSetLayout,
-		std::vector<VkDescriptorSet>* samplerDescriptorSets, VkSampler* textureSampler);
-	static int createTextureDescriptor(DeviceManager *mainDevice, VkImageView textureImage, VkDescriptorPool *samplerDescriptorPool, VkDescriptorSetLayout *samplerSetLayout,
-		std::vector<VkDescriptorSet> *samplerDescriptorSets, VkSampler *textureSampler);
+	int createTextureImage(std::string fileName, std::vector<VkImage> *textureImages, std::vector<VkDeviceMemory> *textureImageMemory);
+	int createTexture(std::string fileName, VkSampler* textureSampler);
+	int createTextureDescriptor( VkImageView textureImage, VkSampler *textureSampler);
 
 	static stbi_uc* loadTextureFile(std::string fileName, int* width, int* height, VkDeviceSize* imageSize);
+
+	void destroy();
+
+	~TextureManager();
+
+private:
+	DeviceManager* mainDevice;
+	CommandPoolManager* commandPoolManager;
+	DescriptorPoolManager* descriptorPoolManager;
+
+	std::vector<VkImage> textureImages;
+	std::vector<VkDeviceMemory> textureImageMemory;
+	std::vector<VkImageView> textureImageViews;
+
 };
 

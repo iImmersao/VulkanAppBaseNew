@@ -26,10 +26,13 @@
 #include "PipelineManager.h"
 #include "DescriptorPoolManager.h"
 #include "CommandBufferManager.h"
+#include "CommandPoolManager.h"
+#include "ImageManager.h"
 #include "TextureManager.h"
 #include "QueueFamilyManager.h"
 #include "SwapChainManager.h"
 #include "DeviceManager.h"
+#include "ModelManager.h"
 
 #include "Utilities.h"
 
@@ -55,7 +58,7 @@ private:
 	int currentFrame = 0;
 
 	// Scene Objects
-	std::vector<MeshModel> modelList;
+	//std::vector<MeshModel> modelList;
 
 	// Scene Settings
 	struct UboViewProjection uboViewProjection;
@@ -67,7 +70,8 @@ private:
 
 	std::vector<SwapchainImage> swapChainImages;
 	std::vector<VkFramebuffer> swapChainFramebuffers;
-	std::vector<VkCommandBuffer> commandBuffers;
+
+	CommandBufferManager commandBufferManager;
 
 	std::vector<VkImage> colourBufferImage;
 	std::vector <VkDeviceMemory> colourBufferImageMemory;
@@ -77,20 +81,26 @@ private:
 	std::vector <VkDeviceMemory> depthBufferImageMemory;
 	std::vector <VkImageView> depthBufferImageView;
 
+	// Move to SamplerManager?
 	VkSampler textureSampler;
 
 	// - Descriptors
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkDescriptorSetLayout samplerSetLayout;
-	VkDescriptorSetLayout inputSetLayout;
+	//VkDescriptorSetLayout descriptorSetLayout;
+	// Move to SamplerManager?
+	//VkDescriptorSetLayout samplerSetLayout;
+	//VkDescriptorSetLayout inputSetLayout;
 	VkPushConstantRange pushConstantRange;
 
-	VkDescriptorPool descriptorPool;
-	VkDescriptorPool samplerDescriptorPool;
-	VkDescriptorPool inputDescriptorPool;
-	std::vector<VkDescriptorSet> descriptorSets;
-	std::vector<VkDescriptorSet> samplerDescriptorSets;
-	std::vector<VkDescriptorSet> inputDescriptorSets;
+	DescriptorPoolManager descriptorPoolManager;
+
+	//VkDescriptorPool descriptorPool;
+	// Move to SamplerManager?
+	//VkDescriptorPool samplerDescriptorPool;
+	//VkDescriptorPool inputDescriptorPool;
+	//std::vector<VkDescriptorSet> descriptorSets;
+	// Move to SamplerManager?
+	//std::vector<VkDescriptorSet> samplerDescriptorSets;
+	//std::vector<VkDescriptorSet> inputDescriptorSets;
 
 	std::vector<VkBuffer> vpUniformBuffer;
 	std::vector<VkDeviceMemory> vpUniformBufferMemory;
@@ -103,9 +113,8 @@ private:
 	//Model* modelTransferSpace;
 
 	// - Assets
-	std::vector<VkImage> textureImages;
-	std::vector<VkDeviceMemory> textureImageMemory;
-	std::vector<VkImageView> textureImageViews;
+	TextureManager textureManager;
+	ModelManager modelManager;
 
 	// - Pipeline
 	VkPipeline graphicsPipeline;
@@ -117,7 +126,8 @@ private:
 	VkRenderPass renderPass;
 
 	// - Pools
-	VkCommandPool graphicsCommandPool;
+	//VkCommandPool graphicsCommandPool;
+	CommandPoolManager commandPoolManager;
 
 	// - Utility
 	VkFormat swapChainImageFormat;

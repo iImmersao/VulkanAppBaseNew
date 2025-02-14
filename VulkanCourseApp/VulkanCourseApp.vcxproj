@@ -140,9 +140,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CommandBufferManager.cpp" />
+    <ClCompile Include="CommandPoolManager.cpp" />
     <ClCompile Include="ConfigManager.cpp" />
     <ClCompile Include="DescriptorPoolManager.cpp" />
     <ClCompile Include="DeviceManager.cpp" />
+    <ClCompile Include="ImageManager.cpp" />
     <ClCompile Include="LightingManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mesh.cpp" />
@@ -152,6 +154,7 @@
     <ClCompile Include="PushConstantManager.cpp" />
     <ClCompile Include="QueueFamilyManager.cpp" />
     <ClCompile Include="RenderPassManager.cpp" />
+    <ClCompile Include="SamplerManager.cpp" />
     <ClCompile Include="ShaderManager.cpp" />
     <ClCompile Include="SwapChainManager.cpp" />
     <ClCompile Include="SynchronisationManager.cpp" />
@@ -162,9 +165,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CommandBufferManager.h" />
+    <ClInclude Include="CommandPoolManager.h" />
     <ClInclude Include="ConfigManager.h" />
     <ClInclude Include="DescriptorPoolManager.h" />
     <ClInclude Include="DeviceManager.h" />
+    <ClInclude Include="ImageManager.h" />
     <ClInclude Include="LightingManager.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshModel.h" />
@@ -173,6 +178,7 @@
     <ClInclude Include="PushConstantManager.h" />
     <ClInclude Include="QueueFamilyManager.h" />
     <ClInclude Include="RenderPassManager.h" />
+    <ClInclude Include="SamplerManager.h" />
     <ClInclude Include="ShaderManager.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="SwapChainManager.h" />
