@@ -33,6 +33,7 @@
 #include "SwapChainManager.h"
 #include "DeviceManager.h"
 #include "ModelManager.h"
+#include "SamplerManager.h"
 
 #include "Utilities.h"
 
@@ -81,8 +82,7 @@ private:
 	std::vector <VkDeviceMemory> depthBufferImageMemory;
 	std::vector <VkImageView> depthBufferImageView;
 
-	// Move to SamplerManager?
-	VkSampler textureSampler;
+	SamplerManager samplerManager;
 
 	// - Descriptors
 	DescriptorPoolManager descriptorPoolManager;
@@ -131,9 +131,8 @@ private:
 	void createColourBufferImage();
 	void createDepthBufferImage();
 	void createFramebuffers();
-	void createCommandPool();
+
 	void createSynchronisation();
-	void createTextureSampler();
 
 	void createUniformBuffers();
 
