@@ -35,6 +35,7 @@
 #include "ModelManager.h"
 #include "SamplerManager.h"
 #include "SynchronisationManager.h"
+#include "PushConstantManager.h"
 
 #include "Utilities.h"
 
@@ -88,7 +89,7 @@ private:
 	// - Descriptors
 	DescriptorPoolManager descriptorPoolManager;
 
-	VkPushConstantRange pushConstantRange;
+	PushConstantManager pushConstantManager;
 
 	std::vector<VkBuffer> vpUniformBuffer;
 	std::vector<VkDeviceMemory> vpUniformBufferMemory;
@@ -126,7 +127,6 @@ private:
 	// - Create Functions
 	void createInstance();
 	void createRenderPass();
-	void createPushConstantRange();
 	void createColourBufferImage();
 	void createDepthBufferImage();
 	void createFramebuffers();

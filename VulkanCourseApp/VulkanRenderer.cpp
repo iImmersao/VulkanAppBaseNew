@@ -22,10 +22,11 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		descriptorPoolManager.createDescriptorSetLayout();
 		descriptorPoolManager.createSamplerDescriptorSetLayout();
 		descriptorPoolManager.createInputDescriptorSetLayout();
-		createPushConstantRange();
+		pushConstantManager = PushConstantManager::PushConstantManager();
+		pushConstantManager.createPushConstantRange();
 		PipelineManager::createGraphicsPipeline(mainDevice, &swapChainExtent, descriptorPoolManager.getDescriptorSetLayout(),
-			descriptorPoolManager.getSamplerSetLayout(),
-			&pushConstantRange, &renderPass, &graphicsPipeline, &pipelineLayout,
+			descriptorPoolManager.getSamplerSetLayout(), pushConstantManager.getPushConstantRange(),
+			&renderPass, &graphicsPipeline, &pipelineLayout,
 			&secondPipeline, &secondPipelineLayout, descriptorPoolManager.getInputSetLayout());
 		createColourBufferImage();
 		createDepthBufferImage();
@@ -443,14 +444,6 @@ void VulkanRenderer::createRenderPass() {
 		throw std::runtime_error("Failed to create a Render Pass!");
 	}
 }
-
-void VulkanRenderer::createPushConstantRange() {
-	// Define push constant values (no 'create' needed)
-	pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;		// Shader stage push constant will go to
-	pushConstantRange.offset = 0;									// Offset into given data to pass to push constant
-	pushConstantRange.size = sizeof(Model);							// Size of data being passed
-}
-
 
 void VulkanRenderer::createColourBufferImage() {
 	// Resize supported format for colour attachment
