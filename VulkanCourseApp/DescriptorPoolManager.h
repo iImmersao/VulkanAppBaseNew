@@ -16,12 +16,12 @@ public:
 
 	DescriptorPoolManager(DeviceManager* mainDevice);
 
-	void createDescriptorPool(std::vector<VkBuffer> *vpUniformBuffer, std::vector<SwapchainImage> *swapChainImages,
+	void createDescriptorPool(std::vector<VkBuffer> *vpUniformBuffer, size_t swapChainImagesSize,
 		std::vector <VkImageView> *colourBufferImageView, std::vector <VkImageView> *depthBufferImageView);
 
-	void createDescriptorSets(std::vector<VkBuffer>* vpUniformBuffer, std::vector<SwapchainImage>* swapChainImages);
+	void createDescriptorSets(std::vector<VkBuffer>* vpUniformBuffer, size_t swapChainImagesSize);
 
-	void createInputDescriptorSets(std::vector<SwapchainImage>* swapChainImages, std::vector <VkImageView> *colourBufferImageView,
+	void createInputDescriptorSets(size_t swapChainImagesSize, std::vector <VkImageView> *colourBufferImageView,
 		std::vector <VkImageView> *depthBufferImageView);
 
 	void createDescriptorSetLayout();

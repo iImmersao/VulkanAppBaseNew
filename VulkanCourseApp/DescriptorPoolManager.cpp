@@ -9,7 +9,7 @@ DescriptorPoolManager::DescriptorPoolManager(DeviceManager* mainDevice)
 	this->mainDevice = mainDevice;
 }
 
-void DescriptorPoolManager::createDescriptorPool(std::vector<VkBuffer> *vpUniformBuffer, std::vector<SwapchainImage> *swapChainImages,
+void DescriptorPoolManager::createDescriptorPool(std::vector<VkBuffer> *vpUniformBuffer, size_t swapChainImagesSize,
 												std::vector <VkImageView>* colourBufferImageView, std::vector <VkImageView>* depthBufferImageView) {
 	// CREATE UNIFORM DESCRIPTOR POOL
 	// Type of descriptors + how many DESCRIPTORS, not Descriptor Sets (combined makes the pool size)
@@ -31,7 +31,7 @@ void DescriptorPoolManager::createDescriptorPool(std::vector<VkBuffer> *vpUnifor
 	// Data to create Descriptor Pool
 	VkDescriptorPoolCreateInfo poolCreateInfo = {};
 	poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolCreateInfo.maxSets = static_cast<uint32_t>(swapChainImages->size());				// Maximum number of Descriptor Sets that can be created from pool
+	poolCreateInfo.maxSets = static_cast<uint32_t>(swapChainImagesSize);				// Maximum number of Descriptor Sets that can be created from pool
 	poolCreateInfo.poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size());	// Amount of Pool Sizes being passed
 	poolCreateInfo.pPoolSizes = descriptorPoolSizes.data();								// Pool Sizes to create pool with
 
@@ -75,7 +75,7 @@ void DescriptorPoolManager::createDescriptorPool(std::vector<VkBuffer> *vpUnifor
 	// Create input attachment pool
 	VkDescriptorPoolCreateInfo inputPoolCreateInfo = {};
 	inputPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	inputPoolCreateInfo.maxSets = swapChainImages->size();
+	inputPoolCreateInfo.maxSets = swapChainImagesSize;
 	inputPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(inputPoolSizes.size());
 	inputPoolCreateInfo.pPoolSizes = inputPoolSizes.data();
 
@@ -85,18 +85,18 @@ void DescriptorPoolManager::createDescriptorPool(std::vector<VkBuffer> *vpUnifor
 	}
 }
 
-void DescriptorPoolManager::createDescriptorSets(std::vector<VkBuffer>* vpUniformBuffer, std::vector<SwapchainImage>* swapChainImages) {
+void DescriptorPoolManager::createDescriptorSets(std::vector<VkBuffer>* vpUniformBuffer, size_t swapChainImagesSize) {
 	// Resize Descriptor Set list so one for every buffer
-	descriptorSets.resize(swapChainImages->size());
+	descriptorSets.resize(swapChainImagesSize);
 
-	std::vector<VkDescriptorSetLayout> setLayouts(swapChainImages->size(), descriptorSetLayout);	// Re-use same layout for now
+	std::vector<VkDescriptorSetLayout> setLayouts(swapChainImagesSize, descriptorSetLayout);	// Re-use same layout for now
 
 	// Descriptor Set Allocation Info
 	// Note: only need one set at present, because both bindings (VP and Model) are part of the same set (set=0)
 	VkDescriptorSetAllocateInfo setAllocInfo = {};
 	setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	setAllocInfo.descriptorPool = descriptorPool;												// Pool to allocate Descriptor Set from
-	setAllocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages->size());			// Number of sets to allocate
+	setAllocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImagesSize);			// Number of sets to allocate
 	setAllocInfo.pSetLayouts = setLayouts.data();												// Layouts to use to allocate sets (1:1 relationship)
 
 	// Allocate Descriptor Sets (multiple)
@@ -106,7 +106,7 @@ void DescriptorPoolManager::createDescriptorSets(std::vector<VkBuffer>* vpUnifor
 	}
 
 	// Update all of descriptor set buffer bindings
-	for (size_t i = 0; i < swapChainImages->size(); i++) {
+	for (size_t i = 0; i < swapChainImagesSize; i++) {
 		// VIEW PROJECTION DESCRIPTOR
 		// Buffer info and data offset info
 		VkDescriptorBufferInfo vpBufferInfo = {};
@@ -150,19 +150,19 @@ void DescriptorPoolManager::createDescriptorSets(std::vector<VkBuffer>* vpUnifor
 	}
 }
 
-void DescriptorPoolManager::createInputDescriptorSets(std::vector<SwapchainImage>* swapChainImages,
-													std::vector <VkImageView> *colourBufferImageView, std::vector <VkImageView> *depthBufferImageView) {
+void DescriptorPoolManager::createInputDescriptorSets(size_t swapChainImagesSize, std::vector <VkImageView> *colourBufferImageView,
+														std::vector <VkImageView> *depthBufferImageView) {
 	// Resize array to hold descriptor set for each swap chain image
-	inputDescriptorSets.resize(swapChainImages->size());
+	inputDescriptorSets.resize(swapChainImagesSize);
 
 	// Fill array of layouts ready for set creation
-	std::vector<VkDescriptorSetLayout> setLayouts(swapChainImages->size(), inputSetLayout);
+	std::vector<VkDescriptorSetLayout> setLayouts(swapChainImagesSize, inputSetLayout);
 
 	// Input Attachment Descriptor Set Allocation Info
 	VkDescriptorSetAllocateInfo setAllocInfo = {};
 	setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	setAllocInfo.descriptorPool = inputDescriptorPool;
-	setAllocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages->size());
+	setAllocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImagesSize);
 	setAllocInfo.pSetLayouts = setLayouts.data();
 
 	// Allocate Descriptor Sets
@@ -172,7 +172,7 @@ void DescriptorPoolManager::createInputDescriptorSets(std::vector<SwapchainImage
 	}
 
 	// Update each descriptor set with input attachment
-	for (size_t i = 0; i < swapChainImages->size(); i++) {
+	for (size_t i = 0; i < swapChainImagesSize; i++) {
 		// Colour Attachment Descriptor
 		VkDescriptorImageInfo colourAttachmentDescriptor = {};
 		colourAttachmentDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

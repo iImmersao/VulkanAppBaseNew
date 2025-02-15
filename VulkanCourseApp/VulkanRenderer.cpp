@@ -44,10 +44,11 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 
 		//allocateDynamicBufferTransferSpace();
 		createUniformBuffers();
-		descriptorPoolManager.createDescriptorPool(&vpUniformBuffer, &swapChainImages,
+		size_t swapChainImagesSize = swapChainImages.size();
+		descriptorPoolManager.createDescriptorPool(&vpUniformBuffer, swapChainImagesSize,
 			&colourBufferImageView, &depthBufferImageView);
-		descriptorPoolManager.createDescriptorSets(&vpUniformBuffer, &swapChainImages);
-		descriptorPoolManager.createInputDescriptorSets(&swapChainImages, &colourBufferImageView, &depthBufferImageView);
+		descriptorPoolManager.createDescriptorSets(&vpUniformBuffer, swapChainImagesSize);
+		descriptorPoolManager.createInputDescriptorSets(swapChainImagesSize, &colourBufferImageView, &depthBufferImageView);
 
 		synchronisationManager = SynchronisationManager::SynchronisationManager(mainDevice);
 		synchronisationManager.createSynchronisation();
