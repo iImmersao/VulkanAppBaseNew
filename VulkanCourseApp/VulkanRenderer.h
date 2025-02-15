@@ -34,6 +34,7 @@
 #include "DeviceManager.h"
 #include "ModelManager.h"
 #include "SamplerManager.h"
+#include "SynchronisationManager.h"
 
 #include "Utilities.h"
 
@@ -119,9 +120,7 @@ private:
 	VkExtent2D swapChainExtent;
 
 	// - Synchronisation
-	std::vector<VkSemaphore> imageAvailable;
-	std::vector<VkSemaphore> renderFinished;
-	std::vector<VkFence> drawFences;
+	SynchronisationManager synchronisationManager;
 
 	// Vulkan Functions
 	// - Create Functions
@@ -131,8 +130,6 @@ private:
 	void createColourBufferImage();
 	void createDepthBufferImage();
 	void createFramebuffers();
-
-	void createSynchronisation();
 
 	void createUniformBuffers();
 
