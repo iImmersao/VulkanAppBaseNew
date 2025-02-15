@@ -37,6 +37,7 @@
 #include "SynchronisationManager.h"
 #include "PushConstantManager.h"
 #include "RenderPassManager.h"
+#include "UniformBufferManager.h"
 
 #include "Utilities.h"
 
@@ -65,7 +66,8 @@ private:
 	ModelManager modelManager;
 
 	// Scene Settings
-	struct UboViewProjection uboViewProjection;
+	//struct UboViewProjection uboViewProjection;
+	UniformBufferManager uniformBufferManager;
 
 	// Vulkan Components
 	VkInstance instance;
@@ -92,8 +94,8 @@ private:
 
 	PushConstantManager pushConstantManager;
 
-	std::vector<VkBuffer> vpUniformBuffer;
-	std::vector<VkDeviceMemory> vpUniformBufferMemory;
+	//std::vector<VkBuffer> vpUniformBuffer;
+	//std::vector<VkDeviceMemory> vpUniformBufferMemory;
 
 	//std::vector<VkBuffer> modelDUniformBuffer;
 	//std::vector<VkDeviceMemory> modelDUniformBufferMemory;
@@ -131,9 +133,9 @@ private:
 	void createDepthBufferImage();
 	void createFramebuffers();
 
-	void createUniformBuffers(size_t swapChainImagesSize);
+	//void createUniformBuffers(size_t swapChainImagesSize);
 
-	void updateUniformBuffers(uint32_t imageIndex);
+	//void updateUniformBuffers(uint32_t imageIndex);
 
 
 	// - Allocate Functions
