@@ -9,13 +9,14 @@
 #include "SwapChainManager.h"
 #include "ImageManager.h"
 #include "RenderPassManager.h"
+#include "SwapChainManager.h"
 
 class BufferManager
 {
 public:
 	BufferManager();
 
-	BufferManager(DeviceManager* mainDevice);
+	BufferManager(DeviceManager* mainDevice, SwapChainManager* swapChainManager);
 
 	void createColourBufferImage(size_t swapChainImagesSize, uint32_t swapChainExtentWidth, uint32_t swapChainExtentHeight);
 	void createDepthBufferImage(size_t swapChainImagesSize, uint32_t swapChainExtentWidth, uint32_t swapChainExtentHeight);
@@ -35,6 +36,7 @@ public:
 	~BufferManager();
 private:
 	DeviceManager* mainDevice;
+	SwapChainManager* swapChainManager;
 
 	std::vector<VkImage> colourBufferImage;
 	std::vector <VkDeviceMemory> colourBufferImageMemory;

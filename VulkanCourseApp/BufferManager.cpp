@@ -3,11 +3,13 @@
 BufferManager::BufferManager()
 {
 	this->mainDevice = NULL;
+	this->swapChainManager = NULL;
 }
 
-BufferManager::BufferManager(DeviceManager* mainDevice)
+BufferManager::BufferManager(DeviceManager* mainDevice, SwapChainManager* swapChainManager)
 {
 	this->mainDevice = mainDevice;
+	this->swapChainManager = swapChainManager;
 }
 
 void BufferManager::createColourBufferImage(size_t swapChainImagesSize, uint32_t swapChainExtentWidth, uint32_t swapChainExtentHeight) {
@@ -17,8 +19,7 @@ void BufferManager::createColourBufferImage(size_t swapChainImagesSize, uint32_t
 	colourBufferImageView.resize(swapChainImagesSize);
 
 	// Get supported format for colour attachment
-	VkFormat colourFormat = SwapChainManager::chooseSupportedFormat(
-		mainDevice,
+	VkFormat colourFormat = swapChainManager->chooseSupportedFormat(
 		{ VK_FORMAT_R8G8B8A8_UNORM },
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -40,8 +41,7 @@ void BufferManager::createDepthBufferImage(size_t swapChainImagesSize, uint32_t 
 	depthBufferImageView.resize(swapChainImagesSize);
 
 	// Get supported format for depth buffer
-	VkFormat depthFormat = SwapChainManager::chooseSupportedFormat(
-		mainDevice,
+	VkFormat depthFormat = swapChainManager->chooseSupportedFormat(
 		{ VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT },
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT

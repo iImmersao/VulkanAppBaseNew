@@ -13,16 +13,45 @@
 
 class SwapChainManager {
 public:
-	static void createSwapChain(DeviceManager *mainDevice, GLFWwindow* window,
-		VkSwapchainKHR *swapchain, VkFormat *swapChainImageFormat, VkExtent2D *swapChainExtent,
-		std::vector<SwapchainImage> *swapChainImages);
+	SwapChainManager();
 
-	static VkSurfaceFormatKHR chooseBestSurfaceFormat(const std::vector < VkSurfaceFormatKHR>& formats);
+	SwapChainManager(DeviceManager* mainDevice);
 
-	static VkPresentModeKHR chooseBestPresentationMode(const std::vector<VkPresentModeKHR> presentationModes);
+	void createSwapChain(GLFWwindow* window);
 
-	static VkExtent2D chooseSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
+	VkSurfaceFormatKHR chooseBestSurfaceFormat(const std::vector < VkSurfaceFormatKHR>& formats);
 
-	static VkFormat chooseSupportedFormat(DeviceManager *mainDevice,  const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
+	VkPresentModeKHR chooseBestPresentationMode(const std::vector<VkPresentModeKHR> presentationModes);
+
+	VkExtent2D chooseSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
+
+	VkFormat chooseSupportedFormat(const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
+
+	VkSwapchainKHR* getSwapchain() {
+		return &swapchain;
+	}
+
+	VkFormat* getSwapChainImageFormat() {
+		return &swapChainImageFormat;
+	}
+
+	VkExtent2D* getSwapChainExtent() {
+		return &swapChainExtent;
+	}
+
+	std::vector<SwapchainImage>* getSwapChainImages() {
+		return &swapChainImages;
+	}
+
+	void destroy();
+
+	~SwapChainManager();
+private:
+	DeviceManager* mainDevice;
+
+	VkSwapchainKHR swapchain;
+	VkFormat swapChainImageFormat;
+	VkExtent2D swapChainExtent;
+	std::vector<SwapchainImage> swapChainImages;
 };
 

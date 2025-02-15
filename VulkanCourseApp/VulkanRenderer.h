@@ -72,9 +72,13 @@ private:
 	// Vulkan Components
 	VkInstance instance;
 	DeviceManager *mainDevice;
+
+	SwapChainManager swapChainManager;
+	/*
 	VkSwapchainKHR swapchain;
 
 	std::vector<SwapchainImage> swapChainImages;
+	*/
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 
 	CommandBufferManager commandBufferManager;
@@ -104,8 +108,10 @@ private:
 	CommandPoolManager commandPoolManager;
 
 	// - Utility
+	/*
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
+	*/
 
 	// - Synchronisation
 	SynchronisationManager synchronisationManager;

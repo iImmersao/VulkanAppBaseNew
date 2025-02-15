@@ -14,10 +14,10 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		*/
 		//mainDevice = DeviceManager::DeviceManager(instance, window);
 		mainDevice = new DeviceManager(instance, window);
-		SwapChainManager::createSwapChain(mainDevice, window,
-			&swapchain, &swapChainImageFormat, &swapChainExtent,
-			&swapChainImages);
-		renderPassManager = RenderPassManager::RenderPassManager(mainDevice, &swapChainImageFormat);
+		swapChainManager = SwapChainManager::SwapChainManager(mainDevice);
+
+		swapChainManager.createSwapChain(window);
+		renderPassManager = RenderPassManager::RenderPassManager(mainDevice, &swapChainManager);
 		renderPassManager.createRenderPass();
 		descriptorPoolManager = DescriptorPoolManager::DescriptorPoolManager(mainDevice);
 		descriptorPoolManager.createDescriptorSetLayout();
@@ -26,16 +26,16 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		pushConstantManager = PushConstantManager::PushConstantManager();
 		pushConstantManager.createPushConstantRange();
 		pipelineManager = PipelineManager::PipelineManager(mainDevice);
-		pipelineManager.createGraphicsPipeline(&swapChainExtent, descriptorPoolManager.getDescriptorSetLayout(),
+		pipelineManager.createGraphicsPipeline(swapChainManager.getSwapChainExtent(), descriptorPoolManager.getDescriptorSetLayout(),
 			descriptorPoolManager.getSamplerSetLayout(), pushConstantManager.getPushConstantRange(),
 			renderPassManager.getRenderPass(), descriptorPoolManager.getInputSetLayout());
 
-		size_t swapChainImagesSize = swapChainImages.size();
+		size_t swapChainImagesSize = swapChainManager.getSwapChainImages()->size();
 
-		bufferManager = BufferManager::BufferManager(mainDevice);
-		bufferManager.createColourBufferImage(swapChainImagesSize, swapChainExtent.width, swapChainExtent.height);
-		bufferManager.createDepthBufferImage(swapChainImagesSize, swapChainExtent.width, swapChainExtent.height);
-		bufferManager.createFramebuffers(&swapChainImages, &swapChainFramebuffers, swapChainExtent.width, swapChainExtent.height, &renderPassManager);
+		bufferManager = BufferManager::BufferManager(mainDevice, &swapChainManager);
+		bufferManager.createColourBufferImage(swapChainImagesSize, swapChainManager.getSwapChainExtent()->width, swapChainManager.getSwapChainExtent()->height);
+		bufferManager.createDepthBufferImage(swapChainImagesSize, swapChainManager.getSwapChainExtent()->width, swapChainManager.getSwapChainExtent()->height);
+		bufferManager.createFramebuffers(swapChainManager.getSwapChainImages(), &swapChainFramebuffers, swapChainManager.getSwapChainExtent()->width, swapChainManager.getSwapChainExtent()->height, &renderPassManager);
 
 		commandPoolManager = CommandPoolManager::CommandPoolManager(mainDevice);
 		commandPoolManager.createCommandPool();
@@ -64,7 +64,7 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		synchronisationManager.createSynchronisation();
 
 		// Vulkan inverts the y-coordinate, i.e., positive y is down!
-		uniformBufferManager.invertCoords(swapChainExtent.width, swapChainExtent.height);
+		uniformBufferManager.invertCoords(swapChainManager.getSwapChainExtent()->width, swapChainManager.getSwapChainExtent()->height);
 
 		//int firstTexture = createTexture("giraffe.jpg");
 		textureManager = TextureManager::TextureManager(mainDevice, &commandPoolManager, &descriptorPoolManager);
@@ -98,9 +98,9 @@ void VulkanRenderer::draw() {
 	// 1. Get next available image to draw to and set something to signal when we're finished with the image (a semaphore)
 	// -- GET NEXT IMAGE --
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(mainDevice->getLogicalDevice(), swapchain, std::numeric_limits<uint64_t>::max(), (*synchronisationManager.getImageAvailable())[currentFrame], VK_NULL_HANDLE, &imageIndex);
+	vkAcquireNextImageKHR(mainDevice->getLogicalDevice(), *swapChainManager.getSwapchain(), std::numeric_limits<uint64_t>::max(), (*synchronisationManager.getImageAvailable())[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-	commandBufferManager.recordCommands(imageIndex, &swapChainExtent, &swapChainFramebuffers);
+	commandBufferManager.recordCommands(imageIndex, swapChainManager.getSwapChainExtent(), &swapChainFramebuffers);
 
 	uniformBufferManager.updateUniformBuffers(imageIndex);
 
@@ -136,7 +136,7 @@ void VulkanRenderer::draw() {
 	presentInfo.waitSemaphoreCount = 1;								// Number of semaphores to wait on
 	presentInfo.pWaitSemaphores = &(*synchronisationManager.getRenderFinished())[currentFrame];	// Semaphores to wait on
 	presentInfo.swapchainCount = 1;									// Number of swapchains to present to
-	presentInfo.pSwapchains = &swapchain;							// Swapchains to present images to
+	presentInfo.pSwapchains = swapChainManager.getSwapchain();							// Swapchains to present images to
 	presentInfo.pImageIndices = &imageIndex;						// Index of images in swapchain to present
 
 	// Present image to screen
@@ -170,7 +170,7 @@ void VulkanRenderer::cleanup() {
 	bufferManager.destroy();
 
 	descriptorPoolManager.destroyDescriptorPool();
-	uniformBufferManager.destroy(swapChainImages.size());
+	uniformBufferManager.destroy(swapChainManager.getSwapChainImages()->size());
 
 	synchronisationManager.destroy();
 	commandPoolManager.destroy();
@@ -180,10 +180,7 @@ void VulkanRenderer::cleanup() {
 	}
 	pipelineManager.destroyPipeline();
 	renderPassManager.destroy();
-	for (auto image : swapChainImages) {
-		vkDestroyImageView(mainDevice->getLogicalDevice(), image.imageView, nullptr);
-	}
-	vkDestroySwapchainKHR(mainDevice->getLogicalDevice(), swapchain, nullptr);
+	swapChainManager.destroy();
 	mainDevice->~DeviceManager();
 	/* TODO - add debug report callback processing to validation layers. This will need to be torn down here.
 	if (enableValidationLayers) {

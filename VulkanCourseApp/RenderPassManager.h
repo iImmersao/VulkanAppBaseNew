@@ -13,7 +13,7 @@ public:
 
 	RenderPassManager();
 
-	RenderPassManager(DeviceManager* mainDevice, VkFormat* swapChainImageFormat);
+	RenderPassManager(DeviceManager* mainDevice, SwapChainManager* swapChainManager);
 
 	void createRenderPass();
 
@@ -27,7 +27,7 @@ public:
 
 private:
 	DeviceManager* mainDevice;
-	VkFormat* swapChainImageFormat;
+	SwapChainManager* swapChainManager;
 
 	VkRenderPass renderPass;
 

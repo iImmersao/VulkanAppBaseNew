@@ -1,8 +1,16 @@
 #include "SwapChainManager.h"
 
-void SwapChainManager::createSwapChain(DeviceManager *mainDevice, GLFWwindow* window,
-									VkSwapchainKHR* swapchain, VkFormat* swapChainImageFormat, VkExtent2D* swapChainExtent,
-									std::vector<SwapchainImage> *swapChainImages) {
+SwapChainManager::SwapChainManager()
+{
+	this->mainDevice = NULL;
+}
+
+SwapChainManager::SwapChainManager(DeviceManager* mainDevice)
+{
+	this->mainDevice = mainDevice;
+}
+
+void SwapChainManager::createSwapChain(GLFWwindow* window) {
 	// Get Swap Chain details so we can pick best settings
 	SwapChainDetails swapChainDetails = mainDevice->getSwapChainDetails(mainDevice->getPhysicalDevice());
 
@@ -61,29 +69,29 @@ void SwapChainManager::createSwapChain(DeviceManager *mainDevice, GLFWwindow* wi
 	swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
 	// Create Swapchain
-	VkResult result = vkCreateSwapchainKHR(mainDevice->getLogicalDevice(), &swapChainCreateInfo, nullptr, swapchain);
+	VkResult result = vkCreateSwapchainKHR(mainDevice->getLogicalDevice(), &swapChainCreateInfo, nullptr, &swapchain);
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create a Swapchain!");
 	}
 
 	// Save these for later, as we will need them
-	*swapChainImageFormat = surfaceFormat.format;
-	*swapChainExtent = extent;
+	swapChainImageFormat = surfaceFormat.format;
+	swapChainExtent = extent;
 
 	// Get swap chain images (first count, then values)
 	uint32_t swapChainImageCount;
-	vkGetSwapchainImagesKHR(mainDevice->getLogicalDevice(), *swapchain, &swapChainImageCount, nullptr);
+	vkGetSwapchainImagesKHR(mainDevice->getLogicalDevice(), swapchain, &swapChainImageCount, nullptr);
 	std::vector<VkImage> images(swapChainImageCount);
-	vkGetSwapchainImagesKHR(mainDevice->getLogicalDevice(), *swapchain, &swapChainImageCount, images.data());
+	vkGetSwapchainImagesKHR(mainDevice->getLogicalDevice(), swapchain, &swapChainImageCount, images.data());
 
 	for (VkImage image : images) {
 		// Store image handle
 		SwapchainImage swapChainImage = {};
 		swapChainImage.image = image;
-		swapChainImage.imageView = ImageManager::createImageView(mainDevice, image, *swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+		swapChainImage.imageView = ImageManager::createImageView(mainDevice, image, swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 
 		// Add to swapchain image list
-		swapChainImages->push_back(swapChainImage);
+		swapChainImages.push_back(swapChainImage);
 	}
 }
 
@@ -143,7 +151,7 @@ VkExtent2D SwapChainManager::chooseSwapExtent(GLFWwindow* window, const VkSurfac
 	}
 }
 
-VkFormat SwapChainManager::chooseSupportedFormat(DeviceManager *mainDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags) {
+VkFormat SwapChainManager::chooseSupportedFormat(const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags) {
 
 	// Loop through the options and find a compatible one
 	for (VkFormat format : formats) {
@@ -161,4 +169,16 @@ VkFormat SwapChainManager::chooseSupportedFormat(DeviceManager *mainDevice, cons
 	}
 
 	throw std::runtime_error("Failed to find a matching format!");
+}
+
+void SwapChainManager::destroy()
+{
+	for (auto image : swapChainImages) {
+		vkDestroyImageView(mainDevice->getLogicalDevice(), image.imageView, nullptr);
+	}
+	vkDestroySwapchainKHR(mainDevice->getLogicalDevice(), swapchain, nullptr);
+}
+
+SwapChainManager::~SwapChainManager()
+{
 }

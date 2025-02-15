@@ -3,13 +3,13 @@
 RenderPassManager::RenderPassManager()
 {
 	this->mainDevice = NULL;
-	this->swapChainImageFormat = NULL;
+	this->swapChainManager = NULL;
 }
 
-RenderPassManager::RenderPassManager(DeviceManager* mainDevice, VkFormat *swapChainImageFormat)
+RenderPassManager::RenderPassManager(DeviceManager* mainDevice, SwapChainManager* swapChainManager)
 {
 	this->mainDevice = mainDevice;
-	this->swapChainImageFormat = swapChainImageFormat;
+	this->swapChainManager = swapChainManager;
 }
 
 void RenderPassManager::createRenderPass() {
@@ -21,8 +21,7 @@ void RenderPassManager::createRenderPass() {
 
 	// Colour Attachment (Input)
 	VkAttachmentDescription colourAttachment = {};
-	colourAttachment.format = SwapChainManager::chooseSupportedFormat(
-		mainDevice,
+	colourAttachment.format = swapChainManager->chooseSupportedFormat(
 		{ VK_FORMAT_R8G8B8A8_UNORM },
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -38,8 +37,7 @@ void RenderPassManager::createRenderPass() {
 	// Depth attachment (Input)
 	VkAttachmentDescription depthAttachment = {};
 	// TODO: Rationalise use of chooseSupportedFormat
-	depthAttachment.format = SwapChainManager::chooseSupportedFormat(
-		mainDevice,
+	depthAttachment.format = swapChainManager->chooseSupportedFormat(
 		{ VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT },
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
@@ -73,7 +71,7 @@ void RenderPassManager::createRenderPass() {
 
 	// Swapchain colour attachment of render pass
 	VkAttachmentDescription swapchainColourAttachment = {};
-	swapchainColourAttachment.format = *swapChainImageFormat;						// Format to use for attachment
+	swapchainColourAttachment.format = *swapChainManager->getSwapChainImageFormat();						// Format to use for attachment
 	swapchainColourAttachment.samples = VK_SAMPLE_COUNT_1_BIT;						// Number of samples to write for multisampling
 	swapchainColourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;					// Describes what to do with attachment before rendering
 	swapchainColourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;				// Describes what to do with attachment after rendering
