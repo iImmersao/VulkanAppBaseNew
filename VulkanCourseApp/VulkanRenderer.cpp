@@ -29,9 +29,14 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 			descriptorPoolManager.getSamplerSetLayout(), pushConstantManager.getPushConstantRange(),
 			renderPassManager.getRenderPass(), &graphicsPipeline, &pipelineLayout,
 			&secondPipeline, &secondPipelineLayout, descriptorPoolManager.getInputSetLayout());
-		createColourBufferImage();
-		createDepthBufferImage();
-		createFramebuffers();
+
+		size_t swapChainImagesSize = swapChainImages.size();
+
+		bufferManager = BufferManager::BufferManager(mainDevice);
+		bufferManager.createColourBufferImage(swapChainImagesSize, swapChainExtent.width, swapChainExtent.height);
+		bufferManager.createDepthBufferImage(swapChainImagesSize, swapChainExtent.width, swapChainExtent.height);
+		bufferManager.createFramebuffers(&swapChainImages, &swapChainFramebuffers, swapChainExtent.width, swapChainExtent.height, &renderPassManager);
+
 		commandPoolManager = CommandPoolManager::CommandPoolManager(mainDevice);
 		commandPoolManager.createCommandPool();
 
@@ -43,13 +48,12 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		samplerManager.createTextureSampler();
 
 		//allocateDynamicBufferTransferSpace();
-		size_t swapChainImagesSize = swapChainImages.size();
 		uniformBufferManager = UniformBufferManager::UniformBufferManager(mainDevice);
 		uniformBufferManager.createUniformBuffers(swapChainImagesSize);
 		descriptorPoolManager.createDescriptorPool(uniformBufferManager.getVpUniformBuffer(), swapChainImagesSize,
-			&colourBufferImageView, &depthBufferImageView);
+			bufferManager.getColourBufferImageView(), bufferManager.getDepthBufferImageView());
 		descriptorPoolManager.createDescriptorSets(uniformBufferManager.getVpUniformBuffer(), swapChainImagesSize);
-		descriptorPoolManager.createInputDescriptorSets(swapChainImagesSize, &colourBufferImageView, &depthBufferImageView);
+		descriptorPoolManager.createInputDescriptorSets(swapChainImagesSize, bufferManager.getColourBufferImageView(), bufferManager.getDepthBufferImageView());
 
 		synchronisationManager = SynchronisationManager::SynchronisationManager(mainDevice);
 		synchronisationManager.createSynchronisation();
@@ -196,17 +200,7 @@ void VulkanRenderer::cleanup() {
 
 	textureManager.destroy();
 
-	for (size_t i = 0; i < depthBufferImage.size(); i++) {
-		vkDestroyImageView(mainDevice->getLogicalDevice(), depthBufferImageView[i], nullptr);
-		vkDestroyImage(mainDevice->getLogicalDevice(), depthBufferImage[i], nullptr);
-		vkFreeMemory(mainDevice->getLogicalDevice(), depthBufferImageMemory[i], nullptr);
-	}
-
-	for (size_t i = 0; i < colourBufferImage.size(); i++) {
-		vkDestroyImageView(mainDevice->getLogicalDevice(), colourBufferImageView[i], nullptr);
-		vkDestroyImage(mainDevice->getLogicalDevice(), colourBufferImage[i], nullptr);
-		vkFreeMemory(mainDevice->getLogicalDevice(), colourBufferImageMemory[i], nullptr);
-	}
+	bufferManager.destroy();
 
 	descriptorPoolManager.destroyDescriptorPool();
 	uniformBufferManager.destroy(swapChainImages.size());
@@ -285,81 +279,6 @@ void VulkanRenderer::createInstance() {
 
 	if (result != VK_SUCCESS) {
 		throw std::runtime_error("Failed to create a Vulkan Instance!");
-	}
-}
-
-void VulkanRenderer::createColourBufferImage() {
-	// Resize supported format for colour attachment
-	colourBufferImage.resize(swapChainImages.size());
-	colourBufferImageMemory.resize(swapChainImages.size());
-	colourBufferImageView.resize(swapChainImages.size());
-
-	// Get supported format for colour attachment
-	VkFormat colourFormat = SwapChainManager::chooseSupportedFormat(
-		mainDevice,
-		{ VK_FORMAT_R8G8B8A8_UNORM },
-		VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-	);
-
-	for (size_t i = 0; i < swapChainImages.size(); i++) {
-		// Create Colour Buffer Image
-		colourBufferImage[i] = ImageManager::createImage(mainDevice, swapChainExtent.width, swapChainExtent.height, colourFormat, VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &colourBufferImageMemory[i]);
-
-		// Create Colour Buffer Image View
-		colourBufferImageView[i] = ImageManager::createImageView(mainDevice, colourBufferImage[i], colourFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-	}
-}
-
-void VulkanRenderer::createDepthBufferImage() {
-	depthBufferImage.resize(swapChainImages.size());
-	depthBufferImageMemory.resize(swapChainImages.size());
-	depthBufferImageView.resize(swapChainImages.size());
-
-	// Get supported format for depth buffer
-	VkFormat depthFormat = SwapChainManager::chooseSupportedFormat(
-		mainDevice,
-		{ VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT },
-		VK_IMAGE_TILING_OPTIMAL,
-		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-	);
-
-	for (size_t i = 0; i < swapChainImages.size(); i++) {
-		// Create Depth Buffer Image
-		depthBufferImage[i] = ImageManager::createImage(mainDevice, swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depthBufferImageMemory[i]);
-
-		// Create Depth Buffer Image View
-		depthBufferImageView[i] = ImageManager::createImageView(mainDevice, depthBufferImage[i], depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-	}
-}
-
-void VulkanRenderer::createFramebuffers() {
-	// Resize framebuffer count to equal swap chain image count
-	swapChainFramebuffers.resize(swapChainImages.size());
-
-	// Create a framebuffer for each swap chain image
-	for (size_t i = 0; i < swapChainFramebuffers.size(); i++) {
-		std::array<VkImageView, 3> attachments = {
-			swapChainImages[i].imageView,
-			colourBufferImageView[i],
-			depthBufferImageView[i]
-		};
-
-		VkFramebufferCreateInfo framebufferCreateInfo = {};
-		framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferCreateInfo.renderPass = *renderPassManager.getRenderPass();												// Render Pass layout the Framebuffer will be used with
-		framebufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-		framebufferCreateInfo.pAttachments = attachments.data();									// List of attachments (1:1 with Render Pass)
-		framebufferCreateInfo.width = swapChainExtent.width;										// Framebuffer width
-		framebufferCreateInfo.height = swapChainExtent.height;										// Framebuffer height
-		framebufferCreateInfo.layers = 1;															// Framebuffer layers
-
-		VkResult result = vkCreateFramebuffer(mainDevice->getLogicalDevice(), &framebufferCreateInfo, nullptr, &swapChainFramebuffers[i]);
-		if (result != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create a Framebuffer!");
-		}
 	}
 }
 

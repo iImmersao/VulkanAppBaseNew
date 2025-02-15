@@ -38,6 +38,7 @@
 #include "PushConstantManager.h"
 #include "RenderPassManager.h"
 #include "UniformBufferManager.h"
+#include "BufferManager.h"
 
 #include "Utilities.h"
 
@@ -66,7 +67,6 @@ private:
 	ModelManager modelManager;
 
 	// Scene Settings
-	//struct UboViewProjection uboViewProjection;
 	UniformBufferManager uniformBufferManager;
 
 	// Vulkan Components
@@ -79,13 +79,7 @@ private:
 
 	CommandBufferManager commandBufferManager;
 
-	std::vector<VkImage> colourBufferImage;
-	std::vector <VkDeviceMemory> colourBufferImageMemory;
-	std::vector <VkImageView> colourBufferImageView;
-
-	std::vector<VkImage> depthBufferImage;
-	std::vector <VkDeviceMemory> depthBufferImageMemory;
-	std::vector <VkImageView> depthBufferImageView;
+	BufferManager bufferManager;
 
 	SamplerManager samplerManager;
 
@@ -93,12 +87,6 @@ private:
 	DescriptorPoolManager descriptorPoolManager;
 
 	PushConstantManager pushConstantManager;
-
-	//std::vector<VkBuffer> vpUniformBuffer;
-	//std::vector<VkDeviceMemory> vpUniformBufferMemory;
-
-	//std::vector<VkBuffer> modelDUniformBuffer;
-	//std::vector<VkDeviceMemory> modelDUniformBufferMemory;
 
 	//VkDeviceSize minUniformBufferOffset;
 	//size_t modelUniformAlignment;
@@ -129,14 +117,6 @@ private:
 	// Vulkan Functions
 	// - Create Functions
 	void createInstance();
-	void createColourBufferImage();
-	void createDepthBufferImage();
-	void createFramebuffers();
-
-	//void createUniformBuffers(size_t swapChainImagesSize);
-
-	//void updateUniformBuffers(uint32_t imageIndex);
-
 
 	// - Allocate Functions
 	//void allocateDynamicBufferTransferSpace();

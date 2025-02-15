@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BufferManager.cpp" />
     <ClCompile Include="CommandBufferManager.cpp" />
     <ClCompile Include="CommandPoolManager.cpp" />
     <ClCompile Include="ConfigManager.cpp" />
@@ -164,6 +165,7 @@
     <ClCompile Include="VulkanRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BufferManager.h" />
     <ClInclude Include="CommandBufferManager.h" />
     <ClInclude Include="CommandPoolManager.h" />
     <ClInclude Include="ConfigManager.h" />
