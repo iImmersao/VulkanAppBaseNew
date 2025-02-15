@@ -36,6 +36,7 @@
 #include "SamplerManager.h"
 #include "SynchronisationManager.h"
 #include "PushConstantManager.h"
+#include "RenderPassManager.h"
 
 #include "Utilities.h"
 
@@ -111,7 +112,7 @@ private:
 	VkPipeline secondPipeline;
 	VkPipelineLayout secondPipelineLayout;
 
-	VkRenderPass renderPass;
+	RenderPassManager renderPassManager;
 
 	// - Pools
 	CommandPoolManager commandPoolManager;
@@ -126,7 +127,6 @@ private:
 	// Vulkan Functions
 	// - Create Functions
 	void createInstance();
-	void createRenderPass();
 	void createColourBufferImage();
 	void createDepthBufferImage();
 	void createFramebuffers();
