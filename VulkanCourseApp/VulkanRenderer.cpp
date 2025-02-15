@@ -43,8 +43,8 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		samplerManager.createTextureSampler();
 
 		//allocateDynamicBufferTransferSpace();
-		createUniformBuffers();
 		size_t swapChainImagesSize = swapChainImages.size();
+		createUniformBuffers(swapChainImagesSize);
 		descriptorPoolManager.createDescriptorPool(&vpUniformBuffer, swapChainImagesSize,
 			&colourBufferImageView, &depthBufferImageView);
 		descriptorPoolManager.createDescriptorSets(&vpUniformBuffer, swapChainImagesSize);
@@ -374,7 +374,7 @@ void VulkanRenderer::createFramebuffers() {
 	}
 }
 
-void VulkanRenderer::createUniformBuffers() {
+void VulkanRenderer::createUniformBuffers(size_t swapChainImagesSize) {
 	// ViewProjection buffer size
 	VkDeviceSize vpBufferSize = sizeof(UboViewProjection);
 
@@ -382,13 +382,13 @@ void VulkanRenderer::createUniformBuffers() {
 	//VkDeviceSize modelBufferSize = modelUniformAlignment * MAX_OBJECTS;
 
 	// One uniform buffer for each image (and by extension, command buffer)
-	vpUniformBuffer.resize(swapChainImages.size());
-	vpUniformBufferMemory.resize(swapChainImages.size());
-	//modelDUniformBuffer.resize(swapChainImages.size());
-	//modelDUniformBufferMemory.resize(swapChainImages.size());
+	vpUniformBuffer.resize(swapChainImagesSize);
+	vpUniformBufferMemory.resize(swapChainImagesSize);
+	//modelDUniformBuffer.resize(swapChainImagesSize);
+	//modelDUniformBufferMemory.resize(swapChainImagesSize);
 
 	// Create Uniform buffers
-	for (size_t i = 0; i < swapChainImages.size(); i++) {
+	for (size_t i = 0; i < swapChainImagesSize; i++) {
 		createBuffer(mainDevice->getPhysicalDevice(), mainDevice->getLogicalDevice(), vpBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vpUniformBuffer[i], &vpUniformBufferMemory[i]);
 		/*

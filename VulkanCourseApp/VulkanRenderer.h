@@ -131,7 +131,7 @@ private:
 	void createDepthBufferImage();
 	void createFramebuffers();
 
-	void createUniformBuffers();
+	void createUniformBuffers(size_t swapChainImagesSize);
 
 	void updateUniformBuffers(uint32_t imageIndex);
 
