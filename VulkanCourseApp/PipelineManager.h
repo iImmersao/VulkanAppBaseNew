@@ -16,13 +16,40 @@ class PipelineManager
 public:
 	PipelineManager();
 
-	static void createGraphicsPipeline(DeviceManager *mainDevice, VkExtent2D *swapChainExtent, VkDescriptorSetLayout *descriptorSetLayout, VkDescriptorSetLayout *samplerSetLayout,
-		VkPushConstantRange *pushConstantRange, VkRenderPass *renderPass, VkPipeline *graphicsPipeline, VkPipelineLayout *pipelineLayout,
-		VkPipeline *secondPipeline, VkPipelineLayout *secondPipelineLayout, VkDescriptorSetLayout *inputSetLayout);
+	PipelineManager(DeviceManager* mainDevice);
 
-	static void destroyPipeline(DeviceManager *mainDevice, VkPipeline* graphicsPipeline, VkPipelineLayout* pipelineLayout,
-		VkPipeline* secondPipeline, VkPipelineLayout* secondPipelineLayout);
+	void createGraphicsPipeline(VkExtent2D *swapChainExtent, VkDescriptorSetLayout *descriptorSetLayout, VkDescriptorSetLayout *samplerSetLayout,
+		VkPushConstantRange *pushConstantRange, VkRenderPass *renderPass, VkDescriptorSetLayout *inputSetLayout);
+
+	void destroyPipeline();
+
+	VkPipeline* getGraphicsPipeline() {
+		return &graphicsPipeline;
+	}
+
+	VkPipelineLayout* getPipelineLayout() {
+		return &pipelineLayout;
+	}
+
+	VkPipeline* getSecondPipeline() {
+		return &secondPipeline;
+	}
+
+	VkPipelineLayout* getSecondPipelineLayout() {
+		return &secondPipelineLayout;
+	}
+
 
 	~PipelineManager();
+
+private:
+	DeviceManager* mainDevice;
+
+	VkPipeline graphicsPipeline;
+	VkPipelineLayout pipelineLayout;
+
+	VkPipeline secondPipeline;
+	VkPipelineLayout secondPipelineLayout;
+
 };
 

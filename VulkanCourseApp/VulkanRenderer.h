@@ -96,11 +96,7 @@ private:
 	TextureManager textureManager;
 
 	// - Pipeline
-	VkPipeline graphicsPipeline;
-	VkPipelineLayout pipelineLayout;
-
-	VkPipeline secondPipeline;
-	VkPipelineLayout secondPipelineLayout;
+	PipelineManager pipelineManager;
 
 	RenderPassManager renderPassManager;
 

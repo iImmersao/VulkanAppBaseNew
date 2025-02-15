@@ -25,10 +25,10 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		descriptorPoolManager.createInputDescriptorSetLayout();
 		pushConstantManager = PushConstantManager::PushConstantManager();
 		pushConstantManager.createPushConstantRange();
-		PipelineManager::createGraphicsPipeline(mainDevice, &swapChainExtent, descriptorPoolManager.getDescriptorSetLayout(),
+		pipelineManager = PipelineManager::PipelineManager(mainDevice);
+		pipelineManager.createGraphicsPipeline(&swapChainExtent, descriptorPoolManager.getDescriptorSetLayout(),
 			descriptorPoolManager.getSamplerSetLayout(), pushConstantManager.getPushConstantRange(),
-			renderPassManager.getRenderPass(), &graphicsPipeline, &pipelineLayout,
-			&secondPipeline, &secondPipelineLayout, descriptorPoolManager.getInputSetLayout());
+			renderPassManager.getRenderPass(), descriptorPoolManager.getInputSetLayout());
 
 		size_t swapChainImagesSize = swapChainImages.size();
 
@@ -40,8 +40,13 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		commandPoolManager = CommandPoolManager::CommandPoolManager(mainDevice);
 		commandPoolManager.createCommandPool();
 
-		commandBufferManager = CommandBufferManager::CommandBufferManager(&commandPoolManager);
-		commandBufferManager.createCommandBuffers(mainDevice, &swapChainFramebuffers);
+		/*
+		This is a bit dodgy, as the modelManager hasn't been initialised yet. But it works, as we are just passing in the address of the variable, which will remain unchanged.
+		The modelManager is only used in recordCommands, which is only used after initialisation is complete.
+		*/
+		commandBufferManager = CommandBufferManager::CommandBufferManager(mainDevice, &commandPoolManager, &pipelineManager,
+																		&descriptorPoolManager, &renderPassManager, &modelManager);
+		commandBufferManager.createCommandBuffers(&swapChainFramebuffers);
 
 		// Create sampler
 		samplerManager = SamplerManager::SamplerManager(mainDevice);
@@ -58,52 +63,17 @@ int VulkanRenderer::init(GLFWwindow* newWindow) {
 		synchronisationManager = SynchronisationManager::SynchronisationManager(mainDevice);
 		synchronisationManager.createSynchronisation();
 
-		//int firstTexture = createTexture("giraffe.jpg");
-
 		// Vulkan inverts the y-coordinate, i.e., positive y is down!
 		uniformBufferManager.invertCoords(swapChainExtent.width, swapChainExtent.height);
 
-		/*
-		// Create a mesh
-		// Vertex Data
-		std::vector<Vertex> meshVertices = {
-			{ {-0.4f, 0.4f, 0.0f}, {1.0f, 0.0f, 0.0f}, { 1.0f, 1.0f } },	// 0
-			{ {-0.4f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f}, { 1.0f, 0.0f } },	// 1
-			{ {0.4f, -0.4f, 0.0f}, {1.0f, 0.0f, 0.0f}, { 0.0f, 0.0f } },	// 2
-			{ {0.4f, 0.4f, 0.0f}, {1.0f, 0.0f, 0.0f}, { 0.0f, 1.0f } }		// 3
-		};
-
-		std::vector<Vertex> meshVertices2 = {
-			{ {-0.25f, 0.6f, 0.0f}, {0.0f, 0.0f, 1.0f}, { 1.0f, 1.0f } },	// 0
-			{ {-0.25f, -0.6f, 0.0f}, {0.0f, 0.0f, 1.0f}, { 1.0f, 0.0f } },	// 1
-			{ {0.25f, -0.6f, 0.0f}, {0.0f, 0.0f, 1.0f}, { 0.0f, 0.0f } },	// 2
-			{ {0.25f, 0.6f, 0.0f}, {0.0f, 0.0f, 1.0f}, { 0.0f, 1.0f } }		// 3
-		};
-
-		// Index Data
-		std::vector<uint32_t> meshIndices = {
-			0, 1, 2,
-			2, 3, 0
-		};
-
-		Mesh firstMesh = Mesh(mainDevice.physicalDevice, mainDevice.logicalDevice,
-			graphicsQueue, graphicsCommandPool,
-			&meshVertices, &meshIndices,
-			createTexture("giraffe.jpg"));
-		Mesh secondMesh = Mesh(mainDevice.physicalDevice, mainDevice.logicalDevice,
-			graphicsQueue, graphicsCommandPool,
-			&meshVertices2, &meshIndices,
-			createTexture("panda.jpg"));
-
-		meshList.push_back(firstMesh);
-		meshList.push_back(secondMesh);
-		*/
-
+		//int firstTexture = createTexture("giraffe.jpg");
 		textureManager = TextureManager::TextureManager(mainDevice, &commandPoolManager, &descriptorPoolManager);
 		// Create our default "no texture" texture
 		textureManager.createTexture("plain.png", samplerManager.getTextureSampler());
 
 		modelManager = ModelManager::ModelManager(mainDevice, &commandPoolManager, &textureManager);
+
+
 	}
 	catch (const std::runtime_error& e) {
 		printf("ERROR: %s\n", e.what());
@@ -130,10 +100,7 @@ void VulkanRenderer::draw() {
 	uint32_t imageIndex;
 	vkAcquireNextImageKHR(mainDevice->getLogicalDevice(), swapchain, std::numeric_limits<uint64_t>::max(), (*synchronisationManager.getImageAvailable())[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-	commandBufferManager.recordCommands(imageIndex, renderPassManager.getRenderPass(), &swapChainExtent, &swapChainFramebuffers,
-		&graphicsPipeline, &pipelineLayout, modelManager.getModelList(),
-		descriptorPoolManager.getDescriptorSets(), descriptorPoolManager.getSamplerDescriptorSets(),
-		&secondPipeline, &secondPipelineLayout, descriptorPoolManager.getInputDescriptorSets());
+	commandBufferManager.recordCommands(imageIndex, &swapChainExtent, &swapChainFramebuffers);
 
 	uniformBufferManager.updateUniformBuffers(imageIndex);
 
@@ -211,8 +178,7 @@ void VulkanRenderer::cleanup() {
 	for (auto framebuffer : swapChainFramebuffers) {
 		vkDestroyFramebuffer(mainDevice->getLogicalDevice(), framebuffer, nullptr);
 	}
-	PipelineManager::destroyPipeline(mainDevice, &graphicsPipeline, &pipelineLayout,
-		&secondPipeline, &secondPipelineLayout);
+	pipelineManager.destroyPipeline();
 	renderPassManager.destroy();
 	for (auto image : swapChainImages) {
 		vkDestroyImageView(mainDevice->getLogicalDevice(), image.imageView, nullptr);

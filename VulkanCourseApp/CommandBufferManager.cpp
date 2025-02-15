@@ -2,14 +2,26 @@
 
 CommandBufferManager::CommandBufferManager()
 {
+	this->mainDevice = NULL;
+	this->commandPoolManager = NULL;
+	this->pipelineManager = NULL;
+	this->descriptorPoolManager = NULL;
+	this->renderPassManager = NULL;
 }
 
-CommandBufferManager::CommandBufferManager(CommandPoolManager *commandPoolManager)
+CommandBufferManager::CommandBufferManager(DeviceManager* mainDevice, CommandPoolManager* commandPoolManager,
+											PipelineManager* pipelineManager, DescriptorPoolManager* descriptorPoolManager,
+											RenderPassManager* renderPassManager, ModelManager* modelManager)
 {
+	this->mainDevice = mainDevice;
 	this->commandPoolManager = commandPoolManager;
+	this->pipelineManager = pipelineManager;
+	this->descriptorPoolManager = descriptorPoolManager;
+	this->renderPassManager = renderPassManager;
+	this->modelManager = modelManager;
 }
 
-void CommandBufferManager::createCommandBuffers(DeviceManager *mainDevice, std::vector<VkFramebuffer>* swapChainFramebuffers) {
+void CommandBufferManager::createCommandBuffers(std::vector<VkFramebuffer>* swapChainFramebuffers) {
 	// Resize command buffer count to have one for each framebuffer
 	commandBuffers.resize(swapChainFramebuffers->size());
 
@@ -27,10 +39,7 @@ void CommandBufferManager::createCommandBuffers(DeviceManager *mainDevice, std::
 	}
 }
 
-void CommandBufferManager::recordCommands(uint32_t currentImage, VkRenderPass *renderPass, VkExtent2D *swapChainExtent, std::vector<VkFramebuffer> *swapChainFramebuffers,
-										VkPipeline *graphicsPipeline, VkPipelineLayout *pipelineLayout, std::vector<MeshModel> *modelList,
-										std::vector<VkDescriptorSet>* descriptorSets, std::vector<VkDescriptorSet>* samplerDescriptorSets,
-										VkPipeline* secondPipeline, VkPipelineLayout* secondPipelineLayout, std::vector<VkDescriptorSet>* inputDescriptorSets) {
+void CommandBufferManager::recordCommands(uint32_t currentImage, VkExtent2D *swapChainExtent, std::vector<VkFramebuffer> *swapChainFramebuffers) {
 	// Information about how to begin each command buffer
 	VkCommandBufferBeginInfo bufferBeginInfo = {};
 	bufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -40,7 +49,7 @@ void CommandBufferManager::recordCommands(uint32_t currentImage, VkRenderPass *r
 	// Information about how to begin a render pass (only needed for graphical applications)
 	VkRenderPassBeginInfo renderPassBeginInfo = {};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = *renderPass;								// Render Pass to begin
+	renderPassBeginInfo.renderPass = *renderPassManager->getRenderPass();								// Render Pass to begin
 	renderPassBeginInfo.renderArea.offset = { 0, 0 };							// Start point of Render Pass in pixels
 	renderPassBeginInfo.renderArea.extent = *swapChainExtent;					// Size of region to run render pass on (starting at offset)
 
@@ -65,16 +74,17 @@ void CommandBufferManager::recordCommands(uint32_t currentImage, VkRenderPass *r
 	vkCmdBeginRenderPass((commandBuffers)[currentImage], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	// Bind Pipeline to be used in Render Pass
-	vkCmdBindPipeline((commandBuffers)[currentImage], VK_PIPELINE_BIND_POINT_GRAPHICS, *graphicsPipeline);
+	vkCmdBindPipeline((commandBuffers)[currentImage], VK_PIPELINE_BIND_POINT_GRAPHICS, *(pipelineManager->getGraphicsPipeline()));
 	// Could attach more pipelines and re-draw for different effects
 
-	for (size_t j = 0; j < modelList->size(); j++) {
-		MeshModel thisModel = (*modelList)[j];
+	std::vector<MeshModel>* modelListPtr = modelManager->getModelList();
+	for (size_t j = 0; j < modelManager->getModelListSize(); j++) {
+		MeshModel thisModel = (*modelListPtr)[j];
 		glm::mat4 tmpModel = thisModel.getModel();
 		// Set up Push Constants directly to shader stage
 		vkCmdPushConstants(
 			(commandBuffers)[currentImage],
-			*pipelineLayout,
+			*(pipelineManager->getPipelineLayout()),
 			VK_SHADER_STAGE_VERTEX_BIT,		// Stage to push constants to
 			0,								// Offset of push constants to update
 			sizeof(Model),					// Size of data being pushed (max 128 bytes, according to Vulkan spec)
@@ -92,11 +102,11 @@ void CommandBufferManager::recordCommands(uint32_t currentImage, VkRenderPass *r
 			// Dynamic Offset Amount
 			//uint32_t dynamicOffset = static_cast<uint32_t>(modelUniformAlignment) * j;
 
-			std::array<VkDescriptorSet, 2> descriptorSetGroup = { (*descriptorSets)[currentImage],
-				(*samplerDescriptorSets)[thisModel.getMesh(k)->getTexId()] };
+			std::array<VkDescriptorSet, 2> descriptorSetGroup = { (*descriptorPoolManager->getDescriptorSets())[currentImage],
+				(*descriptorPoolManager->getSamplerDescriptorSets())[thisModel.getMesh(k)->getTexId()] };
 
 			// Bind Descriptor Sets
-			vkCmdBindDescriptorSets((commandBuffers)[currentImage], VK_PIPELINE_BIND_POINT_GRAPHICS, *pipelineLayout,
+			vkCmdBindDescriptorSets((commandBuffers)[currentImage], VK_PIPELINE_BIND_POINT_GRAPHICS, *(pipelineManager->getPipelineLayout()),
 				0, static_cast<uint32_t>(descriptorSetGroup.size()), descriptorSetGroup.data(), 0, nullptr);
 
 			// Execute pipeline
@@ -108,9 +118,9 @@ void CommandBufferManager::recordCommands(uint32_t currentImage, VkRenderPass *r
 	// Start second subpass
 	vkCmdNextSubpass((commandBuffers)[currentImage], VK_SUBPASS_CONTENTS_INLINE);
 
-	vkCmdBindPipeline((commandBuffers)[currentImage], VK_PIPELINE_BIND_POINT_GRAPHICS, *secondPipeline);
-	vkCmdBindDescriptorSets((commandBuffers)[currentImage], VK_PIPELINE_BIND_POINT_GRAPHICS, *secondPipelineLayout,
-		0, 1, &(*inputDescriptorSets)[currentImage], 0, nullptr);
+	vkCmdBindPipeline((commandBuffers)[currentImage], VK_PIPELINE_BIND_POINT_GRAPHICS, *(pipelineManager->getSecondPipeline()));
+	vkCmdBindDescriptorSets((commandBuffers)[currentImage], VK_PIPELINE_BIND_POINT_GRAPHICS, *(pipelineManager->getSecondPipelineLayout()),
+		0, 1, &(*descriptorPoolManager->getInputDescriptorSets())[currentImage], 0, nullptr);
 	vkCmdDraw((commandBuffers)[currentImage], 3, 1, 0, 0);
 
 	// End Render Pass
