@@ -162,6 +162,7 @@
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="UniformBufferManager.cpp" />
     <ClCompile Include="ValidationManager.cpp" />
+    <ClCompile Include="VulkanInstanceManager.cpp" />
     <ClCompile Include="VulkanRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -189,6 +190,7 @@
     <ClInclude Include="UniformBufferManager.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="ValidationManager.h" />
+    <ClInclude Include="VulkanInstanceManager.h" />
     <ClInclude Include="VulkanRenderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

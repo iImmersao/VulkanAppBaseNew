@@ -39,6 +39,7 @@
 #include "RenderPassManager.h"
 #include "UniformBufferManager.h"
 #include "BufferManager.h"
+#include "VulkanInstanceManager.h"
 
 #include "Utilities.h"
 
@@ -70,15 +71,9 @@ private:
 	UniformBufferManager uniformBufferManager;
 
 	// Vulkan Components
-	VkInstance instance;
 	DeviceManager *mainDevice;
 
 	SwapChainManager swapChainManager;
-	/*
-	VkSwapchainKHR swapchain;
-
-	std::vector<SwapchainImage> swapChainImages;
-	*/
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 
 	CommandBufferManager commandBufferManager;
@@ -108,23 +103,17 @@ private:
 	CommandPoolManager commandPoolManager;
 
 	// - Utility
-	/*
-	VkFormat swapChainImageFormat;
-	VkExtent2D swapChainExtent;
-	*/
 
 	// - Synchronisation
 	SynchronisationManager synchronisationManager;
 
 	// Vulkan Functions
 	// - Create Functions
-	void createInstance();
+	VulkanInstanceManager vulkanInstanceManager;
 
 	// - Allocate Functions
 	//void allocateDynamicBufferTransferSpace();
 
 	// - Support Functions
-	// -- Checker Functions
-	bool checkInstanceExtensionSupport(std::vector<const char*>* checkExtensions);
 };
 
