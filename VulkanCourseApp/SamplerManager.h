@@ -5,11 +5,30 @@
 
 #include <vector>
 
+#include "DeviceManager.h"
+
 class SamplerManager
 {
 public:
+	SamplerManager();
+
+	SamplerManager(DeviceManager* deviceManager);
+
+	void createTextureSampler();
+
+	VkSampler* getTextureSampler() {
+		return &textureSampler;
+	}
+
+	void destroy();
+
+	~SamplerManager();
+
 private:
-	//VkSampler textureSampler;
+	DeviceManager* mainDevice;
+
+	VkSampler textureSampler;
+
 	//VkDescriptorSetLayout samplerSetLayout;
 	//VkDescriptorPool samplerDescriptorPool;
 	//std::vector<VkDescriptorSet> samplerDescriptorSets;

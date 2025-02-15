@@ -33,6 +33,10 @@
 #include "SwapChainManager.h"
 #include "DeviceManager.h"
 #include "ModelManager.h"
+#include "SamplerManager.h"
+#include "SynchronisationManager.h"
+#include "PushConstantManager.h"
+#include "RenderPassManager.h"
 
 #include "Utilities.h"
 
@@ -81,13 +85,12 @@ private:
 	std::vector <VkDeviceMemory> depthBufferImageMemory;
 	std::vector <VkImageView> depthBufferImageView;
 
-	// Move to SamplerManager?
-	VkSampler textureSampler;
+	SamplerManager samplerManager;
 
 	// - Descriptors
 	DescriptorPoolManager descriptorPoolManager;
 
-	VkPushConstantRange pushConstantRange;
+	PushConstantManager pushConstantManager;
 
 	std::vector<VkBuffer> vpUniformBuffer;
 	std::vector<VkDeviceMemory> vpUniformBufferMemory;
@@ -109,7 +112,7 @@ private:
 	VkPipeline secondPipeline;
 	VkPipelineLayout secondPipelineLayout;
 
-	VkRenderPass renderPass;
+	RenderPassManager renderPassManager;
 
 	// - Pools
 	CommandPoolManager commandPoolManager;
@@ -119,21 +122,14 @@ private:
 	VkExtent2D swapChainExtent;
 
 	// - Synchronisation
-	std::vector<VkSemaphore> imageAvailable;
-	std::vector<VkSemaphore> renderFinished;
-	std::vector<VkFence> drawFences;
+	SynchronisationManager synchronisationManager;
 
 	// Vulkan Functions
 	// - Create Functions
 	void createInstance();
-	void createRenderPass();
-	void createPushConstantRange();
 	void createColourBufferImage();
 	void createDepthBufferImage();
 	void createFramebuffers();
-	void createCommandPool();
-	void createSynchronisation();
-	void createTextureSampler();
 
 	void createUniformBuffers();
 
